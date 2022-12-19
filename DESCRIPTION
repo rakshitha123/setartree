@@ -1,0 +1,24 @@
+Package: setartree
+Title: SETAR-Tree: A Novel and Accurate Tree Algorithm for Global Time Series Forecasting
+Version: 0.1.0
+Authors@R: c(
+    person("Rakshitha", "Godahewa", email = "rakshithagw@gmail.com", role = c("cre", "aut", "cph")),
+    person("Christoph", "Bergmeir", email = "christoph.bergmeir@monash.edu", role = "aut"),
+    person("Daniel", "Schmidt", email = "daniel.schmidt@monash.edu", role = "aut"),
+	person("Geoffrey", "Webb", email = "geoff.webb@monash.edu", role = "ctb"))
+Maintainer: Rakshitha Godahewa <rakshithagw@gmail.com>
+Description: The implementations of the SETAR-Tree and SETAR-Forest which are forecasting-specific tree-based models that are in particular suitable for global time series forecasting. 
+    The SETAR-Tree uses some time-series-specific splitting and stopping procedures. It trains global pooled regression models in the leaves allowing the models to learn cross-series information. The depth of the tree is controlled by conducting a statistical linearity test as well as measuring the error reduction percentage at each node split. Thus, the SETAR-Tree requires minimal external hyperparameter tuning and provides competitive results under its default configuration. 
+    The SETAR-Forest combines the forecasts provided by a collection of diverse SETAR-Trees during the forecasting process. 
+License: MIT + file LICENSE
+URL: https://arxiv.org/abs/2211.08661, https://github.com/rakshitha123/SETAR_Trees
+BugReports: https://github.com/rakshitha123/SETAR_Trees/issues
+Depends:
+    R (>= 3.5.0), 
+    forecast,
+	stats,
+	utils
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
