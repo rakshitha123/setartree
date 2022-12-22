@@ -109,9 +109,7 @@ SS <- function(p, train_data, current_lg) {
 
 
 # A function to check whether there exists a remaining non-linearity in the parent node instances
-check_linearity <- function(parent_node, child_nodes, significance){
-  print("lin test")
-
+check_linearity <- function(parent_node, child_nodes, significance, verbose = 2){
   lag <- ncol(parent_node) - 1
   is_significant <- TRUE
 
@@ -135,7 +133,8 @@ check_linearity <- function(parent_node, child_nodes, significance){
     if(p_value > significance)
       is_significant <- FALSE
 
-    print(paste0("P-value = ", p_value, " Significant ", is_significant))
+    if(verbose == 2)
+      print(paste0("Linearity Test P-value = ", p_value, " Significant ", is_significant))
   }
 
   is_significant
@@ -143,9 +142,7 @@ check_linearity <- function(parent_node, child_nodes, significance){
 
 
 # A function to check whether a considerable error reduction (depends on error threshold) can be gained by splitting a parent node into child nodes
-check_error_improvement <- function(parent_node, child_nodes, error_threshold){
-  print("error improvement")
-
+check_error_improvement <- function(parent_node, child_nodes, error_threshold, verbose = 2){
   is_improved <- TRUE
 
   ss0 <- sum((parent_node$y - as.numeric(fit_global_model(parent_node)[["predictions"]])) ^2)
@@ -165,7 +162,8 @@ check_error_improvement <- function(parent_node, child_nodes, error_threshold){
     if(improvement < error_threshold)
       is_improved <- FALSE
 
-    print(paste0("Error improvement = ", improvement, " Enough improvement ", is_improved))
+    if(verbose == 2)
+      print(paste0("Error Reduction = ", improvement, " Enough Reduction ", is_improved))
   }
 
   is_improved

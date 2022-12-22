@@ -14,7 +14,7 @@
 \item{h}{The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.}
 }
 \value{
-If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
+If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function in the R 'forecast' package can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
 \item{method}{The name of the forecasting method (SETAR-Forest) as a character string.}
 \item{x}{The original time series.}
 \item{mean}{Point forecasts as a time series.}
@@ -25,16 +25,14 @@ Obtains forecasts for a given set of time series or a dataframe/matrix of new in
 }
 \examples{
 # Obtaining forecasts for a list of time series
-forest1 <- setarforest(train_series)
-forecasts <- forecast(forest1, train_series)
-
-plot(forecasts[[1]]) # Plotting the first time series with its forecasts
+forest1 <- setarforest(chaotic_logistic_series)
+forecast(forest1, chaotic_logistic_series)
 
 # Obtaining forecasts for a set of test instances
-forest2 <- setarforest(data = train_df[,-1],
-                       label = train_df[,1],
+forest2 <- setarforest(data = web_traffic_train[,-1],
+                       label = web_traffic_train[,1],
                        stopping_criteria = "error_imp",
-                       categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
-forecast(forest2, test_df)
+                       categorical_covariates = c("Project", "Access", "Agent"))
+forecast(forest2, web_traffic_test)
 
 }

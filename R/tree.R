@@ -10,6 +10,7 @@
 #' @param significance_divider The corresponding significance in each tree level is divided by this value. Default value is 2.
 #' @param error_threshold The minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.
 #' @param stopping_criteria The required stopping criteria: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is 'both'.
+#' @param verbose Controls the level of the verbosity of SETAR-Tree: 0 (errors/warnings), 1 (limited amount of information including the current tree depth), 2 (full training information including the current tree depth and stopping criterion results in each tree node). Default value is 2.
 #' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when 'data' is a dataframe/matrix and it contains categorical variables.
 #'
 #' @return An object of class 'setartree' which contains the following properties.
@@ -31,17 +32,17 @@
 #'
 #' @examples
 #' # Training SETAR-Tree with a list of time series
-#' setartree(train_series)
+#' setartree(chaotic_logistic_series)
 #'
 #' # Training SETAR-Tree with a dataframe containing model inputs where the model inputs may contain
-#' # past time series lags, numerical and categorical covariates
-#' setartree(data = train_df[,-1],
-#'           label = train_df[,1],
+#' # past time series lags and numerical/categorical covariates
+#' setartree(data = web_traffic_train[,-1],
+#'           label = web_traffic_train[,1],
 #'           stopping_criteria = "error_imp",
-#'           categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
+#'           categorical_covariates = c("Project", "Access", "Agent"))
 #'
 #' @export
-setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", categorical_covariates = NULL){
+setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
   if(class(data) == "list"){
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
@@ -51,11 +52,11 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
     if(!is.null(categorical_covariates)){
       print("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
-    fit.setartree.series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria)
+    fit.setartree.series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }else if(class(data) == "data.frame" | "matrix" %in% class(data)){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
-    fit.setartree.df(data, label, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", categorical_covariates)
+    fit.setartree.df(data, label, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", verbose, categorical_covariates)
   }else{
     stop("'data' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -70,27 +71,23 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' @param newdata A list of time series which needs forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
 #'
-#' @return If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
+#' @return If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function in the R 'forecast' package can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
 #' \item{method}{The name of the forecasting method (SETAR-Tree) as a character string.}
 #' \item{x}{The original time series.}
 #' \item{mean}{Point forecasts as a time series.}
 #' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
-#' @import forecast
-#'
 #' @examples
 #' # Obtaining forecasts for a list of time series
-#' tree1 <- setartree(train_series)
-#' forecasts <- forecast(tree1, train_series)
-#'
-#' plot(forecasts[[1]]) # Plotting the first time series with its forecasts
+#' tree1 <- setartree(chaotic_logistic_series)
+#' forecast(tree1, chaotic_logistic_series)
 #'
 #' # Obtaining forecasts for a set of test instances
-#' tree2 <- setartree(data = train_df[,-1],
-#'                    label = train_df[,1],
+#' tree2 <- setartree(data = web_traffic_train[,-1],
+#'                    label = web_traffic_train[,1],
 #'                    stopping_criteria = "error_imp",
-#'                    categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
-#' forecast(tree2, test_df)
+#'                    categorical_covariates = c("Project", "Access", "Agent"))
+#' forecast(tree2, web_traffic_test)
 #'
 #' @export
 forecast.setartree <- function(tree, newdata, h = 5){
@@ -120,7 +117,7 @@ forecast.setartree <- function(tree, newdata, h = 5){
 
 
 # Function to fit a SETAR-Tree given a dataframe/matrix of inputs
-fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", type = "df", categorical_covariates = NULL){
+fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", type = "df", verbose = 2, categorical_covariates = NULL){
 
   # Set list of defaults
   start.con <- list(nTh = 15) # Number of thresholds considered when making each split to define the optimal lag/feature
@@ -164,10 +161,13 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
 
   start_time <- Sys.time()
 
-  print("Started building SETAR-Tree")
+  if(verbose == 1 | verbose == 2)
+    print("Started building SETAR-Tree")
 
   for(d in 1:depth){
-    print(paste0("Depth: ", d))
+    if(verbose == 1 | verbose == 2)
+      print(paste0("Depth: ", d))
+
     level_th_lags <- NULL
     level_thresholds <- NULL
     level_nodes <- list()
@@ -175,7 +175,8 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
     level_split_info <- NULL
 
     for(n in 1:length(node_data)){
-      print(n)
+      if(verbose == 2)
+        print(paste0("Node ", n))
 
       best_cost <- Inf
       th <- NULL
@@ -219,11 +220,11 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
 
           # Check whether making the split is worth enough
           if(stopping_criteria == "lin_test")
-            is_significant <- check_linearity(node_data[[n]], splited_nodes, significance)
+            is_significant <- check_linearity(node_data[[n]], splited_nodes, significance, verbose)
           else if(stopping_criteria == "error_imp")
-            is_significant <- check_error_improvement(node_data[[n]], splited_nodes, error_threshold)
+            is_significant <- check_error_improvement(node_data[[n]], splited_nodes, error_threshold, verbose)
           else if(stopping_criteria == "both")
-            is_significant <- check_linearity(node_data[[n]], splited_nodes, significance) & check_error_improvement(node_data[[n]], splited_nodes, error_threshold)
+            is_significant <- check_linearity(node_data[[n]], splited_nodes, significance, verbose) & check_error_improvement(node_data[[n]], splited_nodes, error_threshold, verbose)
 
           if(is_significant){ # Split the node into child nodes only if making that split is worth enough
             level_th_lags <- c(level_th_lags, th_lag)
@@ -313,14 +314,15 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
   output.tree$execution_time <- exec_time
   class(output.tree) <- "setartree"
 
-  print("Finished building SETAR-Tree")
+  if(verbose == 1 | verbose == 2)
+    print("Finished building SETAR-Tree")
 
   output.tree
 }
 
 
 # Function to fit a SETAR-Tree given a list of time series
-fit.setartree.series <- function(time_series_list, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both"){
+fit.setartree.series <- function(time_series_list, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2){
 
   embedded_series <- NULL
 
@@ -338,7 +340,7 @@ fit.setartree.series <- function(time_series_list, lag = 10, depth = 1000, signi
   colnames(embedded_series)[1] <- "y"
   colnames(embedded_series)[2:(lag + 1)] <- paste("Lag", 1:lag, sep = "")
 
-  fit.setartree.df(embedded_series[,-1], embedded_series[,1], depth, significance, significance_divider, error_threshold, stopping_criteria, "list")
+  fit.setartree.df(embedded_series[,-1], embedded_series[,1], depth, significance, significance_divider, error_threshold, stopping_criteria, "list", verbose)
 }
 
 

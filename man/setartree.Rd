@@ -13,6 +13,7 @@ setartree(
   significance_divider = 2,
   error_threshold = 0.03,
   stopping_criteria = "both",
+  verbose = 2,
   categorical_covariates = NULL
 )
 }
@@ -32,6 +33,8 @@ setartree(
 \item{error_threshold}{The minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.}
 
 \item{stopping_criteria}{The required stopping criteria: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is 'both'.}
+
+\item{verbose}{Controls the level of the verbosity of SETAR-Tree: 0 (errors/warnings), 1 (limited amount of information including the current tree depth), 2 (full training information including the current tree depth and stopping criterion results in each tree node). Default value is 2.}
 
 \item{categorical_covariates}{Names of the categorical covariates in the input data. This parameter is only required when 'data' is a dataframe/matrix and it contains categorical variables.}
 }
@@ -55,13 +58,13 @@ Fits a SETAR-Tree model either using a list of time series or an embedded input 
 }
 \examples{
 # Training SETAR-Tree with a list of time series
-setartree(train_series)
+setartree(chaotic_logistic_series)
 
 # Training SETAR-Tree with a dataframe containing model inputs where the model inputs may contain
-# past time series lags, numerical and categorical covariates
-setartree(data = train_df[,-1],
-          label = train_df[,1],
+# past time series lags and numerical/categorical covariates
+setartree(data = web_traffic_train[,-1],
+          label = web_traffic_train[,1],
           stopping_criteria = "error_imp",
-          categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
+          categorical_covariates = c("Project", "Access", "Agent"))
 
 }

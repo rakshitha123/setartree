@@ -15,6 +15,7 @@
 #' @param significance_divider In each SETAR-Tree in the forest, the corresponding significance in a tree level is divided by this value. Default value is 2.
 #' @param error_threshold In each SETAR-Tree in the forest, the minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.
 #' @param stopping_criteria The required stopping criteria for each SETAR-Tree in the forest: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is 'both'.
+#' @param verbose Controls the level of the verbosity of SETAR-Forest: 0 (errors/warnings), 1 (limited amount of information including the depth of the currently processing tree), 2 (full training information including the depth of the currently processing tree and stopping criterion related details in each tree). Default value is 2.
 #' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when 'data' is a dataframe/matrix and it contains categorical variables.
 #'
 #' @return An object of class 'setarforest' which contains the following properties.
@@ -28,24 +29,24 @@
 #'
 #' @examples
 #' # Training SETAR-Forest with a list of time series
-#' setarforest(train_series, bagging_freq = 3)
+#' setarforest(chaotic_logistic_series, bagging_freq = 3)
 #'
 #' # Training SETAR-Forest with a dataframe containing model inputs where the model inputs may contain
-#' # past time series lags, numerical and categorical covariates
-#' setarforest(data = train_df[,-1],
-#'             label = train_df[,1],
+#' # past time series lags and numerical/categorical covariates
+#' setarforest(data = web_traffic_train[,-1],
+#'             label = web_traffic_train[,1],
 #'             bagging_freq = 3,
 #'             stopping_criteria = "error_imp",
-#'             categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
+#'             categorical_covariates = c("Project", "Access", "Agent"))
 #'
 #' @export
-setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", categorical_covariates = NULL){
+setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
 
-  if(random_tree_significance)
+  if(random_tree_significance & (verbose == 1 | verbose == 2))
     print("'random_tree_significance' = TRUE ... Ignored 'significance' parameter.")
-  if(random_tree_error_threshold)
+  if(random_tree_error_threshold & (verbose == 1 | verbose == 2))
     print("'random_tree_error_threshold' = TRUE ... Ignored 'error_threshold' parameter.")
-  if(random_tree_significance_divider)
+  if(random_tree_significance_divider & (verbose == 1 | verbose == 2))
     print("'random_tree_significance_divider' = TRUE ... Ignored 'significance_divider' parameter.")
 
   if(class(data) == "list"){
@@ -57,11 +58,11 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
     if(!is.null(categorical_covariates)){
       print("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
-    fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria)
+    fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }else if(class(data) == "data.frame" | "matrix" %in% class(data)){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
-    fit.setarforest.df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", categorical_covariates)
+    fit.setarforest.df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", verbose, categorical_covariates)
   }else{
     stop("'data' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -76,27 +77,23 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
 #'
-#' @return If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
+#' @return If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function in the R 'forecast' package can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
 #' \item{method}{The name of the forecasting method (SETAR-Forest) as a character string.}
 #' \item{x}{The original time series.}
 #' \item{mean}{Point forecasts as a time series.}
 #' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
-#' @import forecast
-#'
 #' @examples
 #' # Obtaining forecasts for a list of time series
-#' forest1 <- setarforest(train_series)
-#' forecasts <- forecast(forest1, train_series)
-#'
-#' plot(forecasts[[1]]) # Plotting the first time series with its forecasts
+#' forest1 <- setarforest(chaotic_logistic_series)
+#' forecast(forest1, chaotic_logistic_series)
 #'
 #' # Obtaining forecasts for a set of test instances
-#' forest2 <- setarforest(data = train_df[,-1],
-#'                        label = train_df[,1],
+#' forest2 <- setarforest(data = web_traffic_train[,-1],
+#'                        label = web_traffic_train[,1],
 #'                        stopping_criteria = "error_imp",
-#'                        categorical_covariates = c("Open", "Promo", "StateHoliday", "SchoolHoliday"))
-#' forecast(forest2, test_df)
+#'                        categorical_covariates = c("Project", "Access", "Agent"))
+#' forecast(forest2, web_traffic_test)
 #'
 #' @export
 forecast.setarforest <- function(forest, newdata, h = 5){
@@ -126,7 +123,7 @@ forecast.setarforest <- function(forest, newdata, h = 5){
 
 
 # Function to fit a SETAR-Forest given a dataframe/matrix of inputs
-fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", type = "df", categorical_covariates = NULL){
+fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", type = "df", verbose = 2, categorical_covariates = NULL){
 
   data <- as.data.frame(data)
   input_feature_names <- colnames(data)
@@ -159,7 +156,8 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
   start_time <- Sys.time()
 
-  print("Started building SETAR-Forest")
+  if(verbose == 1 | verbose == 2)
+    print("Started building SETAR-Forest")
 
   output.forest <- list()
   output.forest$trees <- list()
@@ -168,6 +166,9 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
   # Training multiple SETAR-Trees as required
   for(bag_f in 1:bagging_freq){
+    if(verbose == 1 | verbose == 2)
+      print(paste0("Started processing tree ", bag_f))
+
     set.seed(bag_f)
     tree_indexes <- sort(sample(1:nrow(embed_data), num_indexes, replace = FALSE))
 
@@ -176,23 +177,29 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
     if(random_tree_significance){
       set.seed(bag_f)
       significance <- sample(seq(0.01, 0.1, length.out = 10), 1)
-      print(paste0("Chosen significance for tree ", bag_f, ": ", significance))
+
+      if(verbose == 2)
+        print(paste0("Chosen significance for tree ", bag_f, ": ", significance))
     }
 
     if(random_tree_significance_divider){
       set.seed(bag_f)
       significance_divider <- sample(2:10, 1)
-      print(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
+
+      if(verbose == 2)
+        print(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
     }
 
     if(random_tree_error_threshold){
       set.seed(bag_f)
       error_threshold <- sample(seq(0.001, 0.05, length.out = 50), 1)
-      print(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
+
+      if(verbose == 2)
+        print(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
     }
 
     # Execute individual SETAR trees
-    output.forest$trees[[bag_f]] <- setartree(current_tree_data[,-1], current_tree_data[,1], ncol(data), depth, significance, significance_divider, error_threshold, stopping_criteria)
+    output.forest$trees[[bag_f]] <- setartree(current_tree_data[,-1], current_tree_data[,1], ncol(data), depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }
 
   end_time <- Sys.time()
@@ -206,14 +213,15 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   output.forest$execution_time <- exec_time
   class(output.forest) <- "setarforest"
 
-  print("Finished building SETAR-Forest")
+  if(verbose == 1 | verbose == 2)
+    print("Finished building SETAR-Forest")
 
   output.forest
 }
 
 
 # Function to fit a SETAR-Forest given a list of time series
-fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both"){
+fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2){
 
   embedded_series <- NULL
 
@@ -231,7 +239,7 @@ fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction 
   colnames(embedded_series)[1] <- "y"
   colnames(embedded_series)[2:(lag + 1)] <- paste("Lag", 1:lag, sep = "")
 
-  fit.setarforest.df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "list")
+  fit.setarforest.df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "list", verbose)
 }
 
 
