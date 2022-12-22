@@ -2,9 +2,9 @@
 
 S3method(forecast,setarforest)
 S3method(forecast,setartree)
+export(forecast)
 export(setarforest)
 export(setartree)
-import(forecast)
 importFrom(stats,as.formula)
 importFrom(stats,embed)
 importFrom(stats,glm)
