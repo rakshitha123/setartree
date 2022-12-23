@@ -27,16 +27,17 @@
 #' \item{input_type}{Type of input data used to train the SETAR-Forest. This is 'list' if 'data' is a list of time series, and 'df' if 'data' is a dataframe/matrix containing model inputs.}
 #' \item{execution_time}{Execution time of SETAR-Forest.}
 #'
+#' @importFrom methods is
+#'
 #' @examples
 #' # Training SETAR-Forest with a list of time series
-#' setarforest(chaotic_logistic_series, bagging_freq = 3)
+#' setarforest(chaotic_logistic_series, bagging_freq = 2)
 #'
 #' # Training SETAR-Forest with a dataframe containing model inputs where the model inputs may contain
 #' # past time series lags and numerical/categorical covariates
 #' setarforest(data = web_traffic_train[,-1],
 #'             label = web_traffic_train[,1],
-#'             bagging_freq = 3,
-#'             stopping_criteria = "error_imp",
+#'             bagging_freq = 2,
 #'             categorical_covariates = c("Project", "Access", "Agent"))
 #'
 #' @export
@@ -49,7 +50,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
   if(random_tree_significance_divider & (verbose == 1 | verbose == 2))
     print("'random_tree_significance_divider' = TRUE ... Ignored 'significance_divider' parameter.")
 
-  if(class(data) == "list"){
+  if(is(data, "list")){
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
     if(!is.null(label)){
@@ -59,7 +60,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
       print("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
     fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
-  }else if(class(data) == "data.frame" | "matrix" %in% class(data)){
+  }else if(is(data, "data.frame") |  is(data, "matrix")){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
     fit.setarforest.df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", verbose, categorical_covariates)
@@ -73,7 +74,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #'
 #' Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Forest model.
 #'
-#' @param forest An object of class 'setarforest' which is a trained SETAR-Forest model.
+#' @param object An object of class 'setarforest' which is a trained SETAR-Forest model.
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
 #'
@@ -83,39 +84,41 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' \item{mean}{Point forecasts as a time series.}
 #' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
+#' @importFrom methods is
+#'
 #' @examples
 #' # Obtaining forecasts for a list of time series
-#' forest1 <- setarforest(chaotic_logistic_series)
+#' forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
 #' forecast(forest1, chaotic_logistic_series)
 #'
 #' # Obtaining forecasts for a set of test instances
 #' forest2 <- setarforest(data = web_traffic_train[,-1],
 #'                        label = web_traffic_train[,1],
-#'                        stopping_criteria = "error_imp",
+#'                        bagging_freq = 2,
 #'                        categorical_covariates = c("Project", "Access", "Agent"))
 #' forecast(forest2, web_traffic_test)
 #'
 #' @export
-forecast.setarforest <- function(forest, newdata, h = 5){
-  if(class(forest) != "setarforest")
-    stop("'forest' should be an object of class 'setarforest'")
+forecast.setarforest <- function(object, newdata, h = 5){
+  if(!is(object, "setarforest"))
+    stop("'object' should be an object of class 'setarforest'")
 
-  if(class(newdata) == "list"){
+  if(is(newdata, "list")){
     if(length(newdata) < 1)
       stop("'newdata' should contain at least one time series.")
 
-    if(forest$input_type != "list")
+    if(object$input_type != "list")
       stop("'newdata' is a list of time series. But the given 'setarforest' object is not fitted using a list of time series.")
 
-    predictseries.setarforest(forest, newdata, h)
-  }else if(class(newdata) == "data.frame" | "matrix" %in% class(newdata)){
+    predictseries.setarforest(object, newdata, h)
+  }else if(is(newdata, "data.frame") | is(newdata, "matrix")){
     if(nrow(newdata) < 1)
       stop("'newdata' should contain at least one test instance.")
 
-    if(forest$input_type != "df")
+    if(object$input_type != "df")
       stop("'newdata' is a dataframe/matrix. But the given 'setarforest' object is not fitted using a dataframe/matrix.")
 
-    predict(forest, newdata)
+    predict(object, newdata)
   }else{
     stop("'newdata' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }

@@ -4,10 +4,10 @@
 \alias{forecast.setarforest}
 \title{Forecast method for SETAR-Forest fits}
 \usage{
-\method{forecast}{setarforest}(forest, newdata, h = 5)
+\method{forecast}{setarforest}(object, newdata, h = 5)
 }
 \arguments{
-\item{forest}{An object of class 'setarforest' which is a trained SETAR-Forest model.}
+\item{object}{An object of class 'setarforest' which is a trained SETAR-Forest model.}
 
 \item{newdata}{A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.}
 
@@ -25,13 +25,13 @@ Obtains forecasts for a given set of time series or a dataframe/matrix of new in
 }
 \examples{
 # Obtaining forecasts for a list of time series
-forest1 <- setarforest(chaotic_logistic_series)
+forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
 forecast(forest1, chaotic_logistic_series)
 
 # Obtaining forecasts for a set of test instances
 forest2 <- setarforest(data = web_traffic_train[,-1],
                        label = web_traffic_train[,1],
-                       stopping_criteria = "error_imp",
+                       bagging_freq = 2,
                        categorical_covariates = c("Project", "Access", "Agent"))
 forecast(forest2, web_traffic_test)
 

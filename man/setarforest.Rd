@@ -68,14 +68,13 @@ Fits a SETAR-Forest model either using a list of time series or an embedded inpu
 }
 \examples{
 # Training SETAR-Forest with a list of time series
-setarforest(chaotic_logistic_series, bagging_freq = 3)
+setarforest(chaotic_logistic_series, bagging_freq = 2)
 
 # Training SETAR-Forest with a dataframe containing model inputs where the model inputs may contain
 # past time series lags and numerical/categorical covariates
 setarforest(data = web_traffic_train[,-1],
             label = web_traffic_train[,1],
-            bagging_freq = 3,
-            stopping_criteria = "error_imp",
+            bagging_freq = 2,
             categorical_covariates = c("Project", "Access", "Agent"))
 
 }

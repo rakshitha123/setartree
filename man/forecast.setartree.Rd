@@ -4,10 +4,10 @@
 \alias{forecast.setartree}
 \title{Forecast method for SETAR-Tree fits}
 \usage{
-\method{forecast}{setartree}(tree, newdata, h = 5)
+\method{forecast}{setartree}(object, newdata, h = 5)
 }
 \arguments{
-\item{tree}{An object of class 'setartree' which is a trained SETAR-Tree model.}
+\item{object}{An object of class 'setartree' which is a trained SETAR-Tree model.}
 
 \item{newdata}{A list of time series which needs forecasts or a dataframe/matrix of new instances which need predictions.}
 

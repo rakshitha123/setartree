@@ -16,7 +16,8 @@ BugReports: https://github.com/rakshitha123/SETAR_Trees/issues
 Depends:
     R (>= 3.5.0), 
 	stats,
-	utils
+	utils,
+	methods
 Suggests: 
     forecast	
 Encoding: UTF-8

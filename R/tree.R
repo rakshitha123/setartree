@@ -29,6 +29,7 @@
 #'
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts
 #' @importFrom utils tail
+#' @importFrom methods is
 #'
 #' @examples
 #' # Training SETAR-Tree with a list of time series
@@ -43,7 +44,7 @@
 #'
 #' @export
 setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
-  if(class(data) == "list"){
+  if(is(data, "list")){
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
     if(!is.null(label)){
@@ -53,7 +54,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
       print("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
     fit.setartree.series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
-  }else if(class(data) == "data.frame" | "matrix" %in% class(data)){
+  }else if(is(data, "data.frame") |  is(data, "matrix")){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
     fit.setartree.df(data, label, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", verbose, categorical_covariates)
@@ -67,7 +68,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #'
 #' Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Tree model.
 #'
-#' @param tree An object of class 'setartree' which is a trained SETAR-Tree model.
+#' @param object An object of class 'setartree' which is a trained SETAR-Tree model.
 #' @param newdata A list of time series which needs forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
 #'
@@ -76,6 +77,8 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' \item{x}{The original time series.}
 #' \item{mean}{Point forecasts as a time series.}
 #' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
+#'
+#' @importFrom methods is
 #'
 #' @examples
 #' # Obtaining forecasts for a list of time series
@@ -90,26 +93,26 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' forecast(tree2, web_traffic_test)
 #'
 #' @export
-forecast.setartree <- function(tree, newdata, h = 5){
-  if(class(tree) != "setartree")
-    stop("'tree' should be an object of class 'setartree'")
+forecast.setartree <- function(object, newdata, h = 5){
+  if(!is(object, "setartree"))
+    stop("'object' should be an object of class 'setartree'")
 
-  if(class(newdata) == "list"){
+  if(is(newdata, "list")){
     if(length(newdata) < 1)
       stop("'newdata' should contain at least one time series.")
 
-    if(tree$input_type != "list")
+    if(object$input_type != "list")
       stop("'newdata' is a list of time series. But the given 'setartree' object is not fitted using a list of time series.")
 
-    predictseries.setartree(tree, newdata, h)
-  }else if(class(newdata) == "data.frame" | "matrix" %in% class(newdata)){
+    predictseries.setartree(object, newdata, h)
+  }else if(is(newdata, "data.frame") |  is(newdata, "matrix")){
     if(nrow(newdata) < 1)
       stop("'newdata' should contain at least one test instance.")
 
-    if(tree$input_type != "df")
+    if(object$input_type != "df")
       stop("'newdata' is a dataframe/matrix. But the given 'setartree' object is not fitted using a dataframe/matrix.")
 
-    predict(tree, newdata)
+    predict(object, newdata)
   }else{
     stop("'newdata' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
