@@ -24,6 +24,7 @@ If 'newdata' is a dataframe/matrix, then a vector containing the prediction of e
 Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Tree model.
 }
 \examples{
+\dontrun{
 # Obtaining forecasts for a list of time series
 tree1 <- setartree(chaotic_logistic_series)
 forecast(tree1, chaotic_logistic_series)
@@ -34,5 +35,6 @@ tree2 <- setartree(data = web_traffic_train[,-1],
                    stopping_criteria = "error_imp",
                    categorical_covariates = c("Project", "Access", "Agent"))
 forecast(tree2, web_traffic_test)
+}
 
 }

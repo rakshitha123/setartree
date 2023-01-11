@@ -32,6 +32,7 @@
 #' @importFrom methods is
 #'
 #' @examples
+#' \dontrun{
 #' # Training SETAR-Tree with a list of time series
 #' setartree(chaotic_logistic_series)
 #'
@@ -41,6 +42,7 @@
 #'           label = web_traffic_train[,1],
 #'           stopping_criteria = "error_imp",
 #'           categorical_covariates = c("Project", "Access", "Agent"))
+#' }
 #'
 #' @export
 setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
@@ -81,6 +83,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' @importFrom methods is
 #'
 #' @examples
+#' \dontrun{
 #' # Obtaining forecasts for a list of time series
 #' tree1 <- setartree(chaotic_logistic_series)
 #' forecast(tree1, chaotic_logistic_series)
@@ -91,6 +94,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #'                    stopping_criteria = "error_imp",
 #'                    categorical_covariates = c("Project", "Access", "Agent"))
 #' forecast(tree2, web_traffic_test)
+#' }
 #'
 #' @export
 forecast.setartree <- function(object, newdata, h = 5){

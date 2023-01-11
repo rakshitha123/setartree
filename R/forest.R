@@ -30,6 +30,7 @@
 #' @importFrom methods is
 #'
 #' @examples
+#' \dontrun{
 #' # Training SETAR-Forest with a list of time series
 #' setarforest(chaotic_logistic_series, bagging_freq = 2)
 #'
@@ -39,6 +40,7 @@
 #'             label = web_traffic_train[,1],
 #'             bagging_freq = 2,
 #'             categorical_covariates = c("Project", "Access", "Agent"))
+#' }
 #'
 #' @export
 setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
@@ -87,6 +89,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @importFrom methods is
 #'
 #' @examples
+#' \dontrun{
 #' # Obtaining forecasts for a list of time series
 #' forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
 #' forecast(forest1, chaotic_logistic_series)
@@ -97,6 +100,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #'                        bagging_freq = 2,
 #'                        categorical_covariates = c("Project", "Access", "Agent"))
 #' forecast(forest2, web_traffic_test)
+#' }
 #'
 #' @export
 forecast.setarforest <- function(object, newdata, h = 5){

@@ -67,6 +67,7 @@ An object of class 'setarforest' which contains the following properties.
 Fits a SETAR-Forest model either using a list of time series or an embedded input matrix and labels.
 }
 \examples{
+\dontrun{
 # Training SETAR-Forest with a list of time series
 setarforest(chaotic_logistic_series, bagging_freq = 2)
 
@@ -76,5 +77,6 @@ setarforest(data = web_traffic_train[,-1],
             label = web_traffic_train[,1],
             bagging_freq = 2,
             categorical_covariates = c("Project", "Access", "Agent"))
+}
 
 }

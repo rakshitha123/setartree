@@ -57,6 +57,7 @@ An object of class 'setartree' which contains the following properties.
 Fits a SETAR-Tree model either using a list of time series or an embedded input matrix and labels.
 }
 \examples{
+\dontrun{
 # Training SETAR-Tree with a list of time series
 setartree(chaotic_logistic_series)
 
@@ -66,5 +67,6 @@ setartree(data = web_traffic_train[,-1],
           label = web_traffic_train[,1],
           stopping_criteria = "error_imp",
           categorical_covariates = c("Project", "Access", "Agent"))
+}
 
 }

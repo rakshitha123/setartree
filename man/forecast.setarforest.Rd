@@ -24,6 +24,7 @@ If 'newdata' is a dataframe/matrix, then a vector containing the prediction of e
 Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Forest model.
 }
 \examples{
+\dontrun{
 # Obtaining forecasts for a list of time series
 forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
 forecast(forest1, chaotic_logistic_series)
@@ -34,5 +35,6 @@ forest2 <- setarforest(data = web_traffic_train[,-1],
                        bagging_freq = 2,
                        categorical_covariates = c("Project", "Access", "Agent"))
 forecast(forest2, web_traffic_test)
+}
 
 }
