@@ -11,7 +11,7 @@ Description: The implementations of the SETAR-Tree and SETAR-Forest which are fo
     The SETAR-Tree uses some time-series-specific splitting and stopping procedures. It trains global pooled regression models in the leaves allowing the models to learn cross-series information. The depth of the tree is controlled by conducting a statistical linearity test as well as measuring the error reduction percentage at each node split. Thus, the SETAR-Tree requires minimal external hyperparameter tuning and provides competitive results under its default configuration. 
     The SETAR-Forest combines the forecasts provided by a collection of diverse SETAR-Trees during the forecasting process. 
 License: MIT + file LICENSE
-URL: https://arxiv.org/abs/2211.08661, https://github.com/rakshitha123/SETAR_Trees
+URL: https://github.com/rakshitha123/SETAR_Trees
 BugReports: https://github.com/rakshitha123/SETAR_Trees/issues
 Depends:
     R (>= 3.5.0), 
