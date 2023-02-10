@@ -2,7 +2,7 @@ if (!('forecast' %in% rownames(installed.packages())))
   install.packages("forecast")
 
 library(setartree)
-library(forecast) # The 'forecast' package is only required for plotting in line 17 and 18.
+library(forecast) # The 'forecast' package is only required for plotting examples shown in lines 17-30.
 
 
 ### Case 1 - When need to obtain forecasts for a list of time series ###
@@ -13,9 +13,21 @@ tree1 <- setartree(chaotic_logistic_series)
 # Obtaining predictions
 tree_forecasts <- setartree:::forecast(tree1, chaotic_logistic_series)
 
-# Plotting
-plot(tree_forecasts[[1]]) # Plotting the 1st time series
-plot(tree_forecasts[[10]]) # Plotting the 10th time series
+# Plotting - can use either plot or autoplot functions
+plot(tree_forecasts) # Plot all time series
+autoplot(tree_forecasts)
+
+plot(tree_forecasts$forecast$T1) # Plot the 1st time series
+autoplot(tree_forecasts$forecast$T1)
+
+plot(tree_forecasts$forecast$T10) # Plot the 10th time series
+autoplot(tree_forecasts$forecast$T10)
+
+custom_forecasts <- tree_forecasts # Plot a selected set of time series - eg: 1st and 10th time series
+custom_forecasts$forecast <- custom_forecasts$forecast[c(1, 10)]
+custom_forecasts$method <- custom_forecasts$method[c(1, 10)]
+plot(custom_forecasts)
+autoplot(custom_forecasts)
 
 
 
@@ -30,7 +42,4 @@ tree2 <- setartree(data = web_traffic_train[-1],
 
 # Obtaining predictions
 setartree:::forecast(tree2, web_traffic_test)
-
-
-
 

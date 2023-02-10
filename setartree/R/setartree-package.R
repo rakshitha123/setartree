@@ -29,7 +29,7 @@
 #' use the function \code{\link{setartree}}.
 #' To fit a SETAR-Forest model either using a list of time series or an embedded input matrix and labels,
 #' use the function \code{\link{setarforest}}.
-#' To obtain forecasts from a SETAR-Tree or a SETAR-Forest, use the S3 method, \code{\link{forecast}}.
+#' To obtain forecasts from a SETAR-Tree or a SETAR-Forest, use the functions \code{\link{forecast.setartree}} and \code{\link{forecast.setarforest}}, respectively.
 #'
 #' The setartree package also contains three datasets that can be used to train/test the SETAR-Tree and SETAR-Forest models:
 #' \code{\link{chaotic_logistic_series}}, \code{\link{web_traffic_train}} and \code{\link{web_traffic_test}}.

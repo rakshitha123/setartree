@@ -80,10 +80,16 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
 #'
-#' @return If 'newdata' is a list of time series, then a list of objects of class 'forecast' is returned. The 'plot' function in the R 'forecast' package can then be used to produce a plot of any time series in the returned list. Each list object contains the following properties.
-#' \item{method}{The name of the forecasting method (SETAR-Forest) as a character string.}
-#' \item{x}{The original time series.}
-#' \item{mean}{Point forecasts as a time series.}
+#' @return If 'newdata' is a list of time series, then an object of class 'mforecast' is returned.
+#' The 'plot' or 'autoplot' functions in the R 'forecast' package can then be used to produce a plot of any time series in the returned object which contains the following properties.
+#' \item{method}{A vector containing the name of the forecasting method ("SETAR-Forest").}
+#' \item{forecast}{A list of objects of class 'forecast'.
+#' Each list object is corresponding with a time series and its forecasts.
+#' Each list object contains 4 properties:
+#' method (the name of the forecasting method, SETAR-Forest, as a character string),
+#' x (the original time series),
+#' mean (point forecasts as a time series) and
+#' series (the name of the series as a character string).}
 #' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
 #' @importFrom methods is
@@ -333,6 +339,9 @@ predictseries.setarforest <- function(forest, time_series_list, h = 5){
   }
 
   results <- list()
+  results$method <- rep("SETAR-Forest", length(time_series_list))
+  names(results$method) <- paste0("T", 1:length(time_series_list))
+  results$forecast <- list()
 
   for(i in 1:length(time_series_list)){
     time_series <- as.numeric(unlist(time_series_list[i], use.names = FALSE))
@@ -340,10 +349,12 @@ predictseries.setarforest <- function(forest, time_series_list, h = 5){
     current_result$method = "SETAR-Forest"
     current_result$mean = ts(as.numeric(forecasts[i,]), start = length(time_series)+1)
     current_result$x = ts(time_series)
+    current_result$series <- paste0("T", i)
     class(current_result) <- "forecast"
-    results[[i]] <- current_result
+    results$forecast[[paste0("T", i)]] <- current_result
   }
 
+  class(results) <- "mforecast"
   results
 }
 
