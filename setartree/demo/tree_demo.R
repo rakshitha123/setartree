@@ -11,7 +11,7 @@ library(forecast) # The 'forecast' package is only required for plotting example
 tree1 <- setartree(chaotic_logistic_series)
 
 # Obtaining predictions
-tree_forecasts <- setartree:::forecast(tree1, chaotic_logistic_series)
+tree_forecasts <- forecast(tree1, chaotic_logistic_series)
 
 # Plotting - can use either plot or autoplot functions
 plot(tree_forecasts) # Plot all time series
@@ -41,5 +41,5 @@ tree2 <- setartree(data = web_traffic_train[-1],
                    categorical_covariates = c("Project", "Access", "Agent"))
 
 # Obtaining predictions
-setartree:::forecast(tree2, web_traffic_test)
+forecast(tree2, web_traffic_test)
 

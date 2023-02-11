@@ -41,7 +41,7 @@
 #'
 #' @title Getting started with the setartree package
 #' @name setartree-package
-#' @aliases setartree
+# @aliases setartree
 #' @docType package
 # @encoding UTF-8
 # @encoding Latin-1
@@ -65,8 +65,11 @@
 #'
 #' @keywords package setartree forecasting
 #' @import methods
+#' @import generics
 #' @importFrom methods is
 #' @importFrom utils tail
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts
+#' @importFrom generics forecast
+
 NULL
 

@@ -3,8 +3,8 @@
 #' Fits a SETAR-Forest model either using a list of time series or an embedded input matrix and labels.
 #'
 #' @param data A list of time series (each list element is a separate time series) or a dataframe/matrix containing model inputs (the columns can contain past time series lags and/or external numerical/categorical covariates).
-#' @param label A vector of true outputs. This parameter is only required when 'data' is a dataframe/matrix containing the model inputs.
-#' @param lag The number of past time series lags that should be used when fitting each SETAR-Tree in the forest. This parameter is only required when 'data' is a list of time series. Default value is 10.
+#' @param label A vector of true outputs. This parameter is only required when \code{data} is a dataframe/matrix containing the model inputs.
+#' @param lag The number of past time series lags that should be used when fitting each SETAR-Tree in the forest. This parameter is only required when \code{data} is a list of time series. Default value is 10.
 #' @param bagging_fraction The percentage of instances that should be used to train each SETAR-Tree in the forest.  Default value is 0.8.
 #' @param bagging_freq The number of SETAR-Trees in the forest.  Default value is 10.
 #' @param random_tree_significance Whether a random significance should be considered for splitting per each tree. Each node split within the tree considers the same significance level. When this parameter is set to TRUE, the "significance" parameter will be ignored. Default value is TRUE.
@@ -14,17 +14,17 @@
 #' @param significance In each SETAR-Tree in the forest, the initial significance used by the linearity test (alpha_0). Default value is 0.05.
 #' @param significance_divider In each SETAR-Tree in the forest, the corresponding significance in a tree level is divided by this value. Default value is 2.
 #' @param error_threshold In each SETAR-Tree in the forest, the minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.
-#' @param stopping_criteria The required stopping criteria for each SETAR-Tree in the forest: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is 'both'.
+#' @param stopping_criteria The required stopping criteria for each SETAR-Tree in the forest: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is \code{"both"}.
 #' @param verbose Controls the level of the verbosity of SETAR-Forest: 0 (errors/warnings), 1 (limited amount of information including the depth of the currently processing tree), 2 (full training information including the depth of the currently processing tree and stopping criterion related details in each tree). Default value is 2.
-#' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when 'data' is a dataframe/matrix and it contains categorical variables.
+#' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when \code{data} is a dataframe/matrix and it contains categorical variables.
 #'
-#' @return An object of class 'setarforest' which contains the following properties.
-#' \item{trees}{A list of objects of class 'setartree' which represents the trained SETAR-Tree models in the forest.}
+#' @return An object of class \code{\link{setarforest}} which contains the following properties.
+#' \item{trees}{A list of objects of class \code{\link{setartree}} which represents the trained SETAR-Tree models in the forest.}
 #' \item{lag}{The number of features used to train each SEATR-Tree in the forest.}
 #' \item{feature_names}{Names of the input features.}
 #' \item{coefficients}{Names of the coefficients of leaf node regresion models in each SETAR-Tree in the forest.}
 #' \item{categorical_covariate_values}{Information about the categorical covarites used during training (only if applicable).}
-#' \item{input_type}{Type of input data used to train the SETAR-Forest. This is 'list' if 'data' is a list of time series, and 'df' if 'data' is a dataframe/matrix containing model inputs.}
+#' \item{input_type}{Type of input data used to train the SETAR-Forest. This is \code{list} if \code{data} is a list of time series, and \code{df} if \code{data} is a dataframe/matrix containing model inputs.}
 #' \item{execution_time}{Execution time of SETAR-Forest.}
 #'
 #' @importFrom methods is
@@ -76,21 +76,21 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #'
 #' Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Forest model.
 #'
-#' @param object An object of class 'setarforest' which is a trained SETAR-Forest model.
+#' @param object An object of class \code{\link{setarforest}} which is a trained SETAR-Forest model.
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
-#' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
+#' @param h The required number of forecasts (forecast horizon). This parameter is only required when \code{newdata} is a list of time series. Default value is 5.
 #'
-#' @return If 'newdata' is a list of time series, then an object of class 'mforecast' is returned.
-#' The 'plot' or 'autoplot' functions in the R 'forecast' package can then be used to produce a plot of any time series in the returned object which contains the following properties.
+#' @return If \code{newdata} is a list of time series, then an object of class \code{mforecast} is returned.
+#' The \code{plot} or \code{autoplot} functions in the R \code{forecast} package can then be used to produce a plot of any time series in the returned object which contains the following properties.
 #' \item{method}{A vector containing the name of the forecasting method ("SETAR-Forest").}
-#' \item{forecast}{A list of objects of class 'forecast'.
+#' \item{forecast}{A list of objects of class \code{forecast}.
 #' Each list object is corresponding with a time series and its forecasts.
 #' Each list object contains 4 properties:
 #' method (the name of the forecasting method, SETAR-Forest, as a character string),
 #' x (the original time series),
 #' mean (point forecasts as a time series) and
 #' series (the name of the series as a character string).}
-#' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
+#' If \code{newdata} is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
 #' @importFrom methods is
 #'
@@ -291,10 +291,10 @@ predict.setarforest <- function(forest, newdata){
 
   all_tree_models <- forest$trees
 
-  predictions <- forecast(all_tree_models[[1]], newdata)
+  predictions <- forecast.setartree(all_tree_models[[1]], newdata)
 
   for(t in 2:length(all_tree_models))
-    predictions <- predictions + forecast(all_tree_models[[t]], newdata)
+    predictions <- predictions + forecast.setartree(all_tree_models[[t]], newdata)
 
   predictions <- predictions/length(all_tree_models) # Final predictions are the average of predictions given by all trees
 

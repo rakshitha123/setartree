@@ -3,17 +3,17 @@
 #' Fits a SETAR-Tree model either using a list of time series or an embedded input matrix and labels.
 #'
 #' @param data A list of time series (each list element is a separate time series) or a dataframe/matrix containing model inputs (the columns can contain past time series lags and/or external numerical/categorical covariates).
-#' @param label A vector of true outputs. This parameter is only required when 'data' is a dataframe/matrix containing the model inputs.
-#' @param lag The number of past time series lags that should be used when fitting the SETAR-Tree. This parameter is only required when 'data' is a list of time series. Default value is 10.
+#' @param label A vector of true outputs. This parameter is only required when \code{data} is a dataframe/matrix containing the model inputs.
+#' @param lag The number of past time series lags that should be used when fitting the SETAR-Tree. This parameter is only required when \code{data} is a list of time series. Default value is 10.
 #' @param depth  Maximum tree depth. Default value is 1000. Thus, unless specify a lower value, the depth is actually controlled by the stopping criterion.
 #' @param significance Initial significance used by the linearity test (alpha_0). Default value is 0.05.
 #' @param significance_divider The corresponding significance in each tree level is divided by this value. Default value is 2.
 #' @param error_threshold The minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.
-#' @param stopping_criteria The required stopping criteria: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is 'both'.
+#' @param stopping_criteria The required stopping criteria: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is \code{"both"}.
 #' @param verbose Controls the level of the verbosity of SETAR-Tree: 0 (errors/warnings), 1 (limited amount of information including the current tree depth), 2 (full training information including the current tree depth and stopping criterion results in each tree node). Default value is 2.
-#' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when 'data' is a dataframe/matrix and it contains categorical variables.
+#' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when \code{data} is a dataframe/matrix and it contains categorical variables.
 #'
-#' @return An object of class 'setartree' which contains the following properties.
+#' @return An object of class \code{\link{setartree}} which contains the following properties.
 #' \item{leaf_models}{Trained global pooled regression models in each leaf node.}
 #' \item{opt_lags}{Optimal features used to split each node.}
 #' \item{opt_thresholds}{Optimal threshold values used to split each node.}
@@ -24,7 +24,7 @@
 #' \item{depth}{Depth of the SETAR-Tree which was determined based on the specified stopping criterion.}
 #' \item{leaf_instance_dis}{Number of instances used to train the regression models at each leaf node.}
 #' \item{categorical_covariate_values}{Information about the categorical covarites used during training (only if applicable).}
-#' \item{input_type}{Type of input data used to train the SETAR-Tree. This is 'list' if 'data' is a list of time series, and 'df' if 'data' is a dataframe/matrix containing model inputs.}
+#' \item{input_type}{Type of input data used to train the SETAR-Tree. This is \code{list} if \code{data} is a list of time series, and \code{df} if \code{data} is a dataframe/matrix containing model inputs.}
 #' \item{execution_time}{Execution time of SETAR-Tree.}
 #'
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts
@@ -70,21 +70,21 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #'
 #' Obtains forecasts for a given set of time series or a dataframe/matrix of new instances from a fitted SETAR-Tree model.
 #'
-#' @param object An object of class 'setartree' which is a trained SETAR-Tree model.
+#' @param object An object of class \code{\link{setartree}} which is a trained SETAR-Tree model.
 #' @param newdata A list of time series which needs forecasts or a dataframe/matrix of new instances which need predictions.
-#' @param h The required number of forecasts (forecast horizon). This parameter is only required when 'newdata' is a list of time series. Default value is 5.
+#' @param h The required number of forecasts (forecast horizon). This parameter is only required when \code{newdata} is a list of time series. Default value is 5.
 #'
-#' @return If 'newdata' is a list of time series, then an object of class 'mforecast' is returned.
-#' The 'plot' or 'autoplot' functions in the R 'forecast' package can then be used to produce a plot of any time series in the returned object which contains the following properties.
+#' @return If \code{newdata} is a list of time series, then an object of class \code{mforecast} is returned.
+#' The \code{plot} or \code{autoplot} functions in the R \code{forecast} package can then be used to produce a plot of any time series in the returned object which contains the following properties.
 #' \item{method}{A vector containing the name of the forecasting method ("SETAR-Tree").}
-#' \item{forecast}{A list of objects of class 'forecast'.
+#' \item{forecast}{A list of objects of class \code{forecast}.
 #' Each list object is corresponding with a time series and its forecasts.
 #' Each list object contains 4 properties:
 #' method (the name of the forecasting method, SETAR-Tree, as a character string),
 #' x (the original time series),
 #' mean (point forecasts as a time series) and
 #' series (the name of the series as a character string).}
-#' If 'newdata' is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
+#' If \code{newdata} is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
 #'
 #' @importFrom methods is
 #'
@@ -102,6 +102,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' forecast(tree2, web_traffic_test)
 #' }
 #'
+#' @method forecast setartree
 #' @export
 forecast.setartree <- function(object, newdata, h = 5){
   if(!is(object, "setartree"))
