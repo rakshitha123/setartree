@@ -108,6 +108,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' forecast(forest2, web_traffic_test)
 #' }
 #'
+#' @method forecast setarforest
 #' @export
 forecast.setarforest <- function(object, newdata, h = 5){
   if(!is(object, "setarforest"))
