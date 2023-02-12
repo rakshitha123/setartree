@@ -40,8 +40,8 @@
 #' # past time series lags and numerical/categorical covariates
 #' setartree(data = web_traffic_train[,-1],
 #'           label = web_traffic_train[,1],
-#'           stopping_criteria = "error_imp",
-#'           categorical_covariates = c("Project", "Access", "Agent"))
+#'           stopping_criteria = "both",
+#'           categorical_covariates = "Project")
 #' }
 #'
 #' @export
@@ -97,8 +97,8 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' # Obtaining forecasts for a set of test instances
 #' tree2 <- setartree(data = web_traffic_train[,-1],
 #'                    label = web_traffic_train[,1],
-#'                    stopping_criteria = "error_imp",
-#'                    categorical_covariates = c("Project", "Access", "Agent"))
+#'                    stopping_criteria = "both",
+#'                    categorical_covariates = "Project")
 #' forecast(tree2, web_traffic_test)
 #' }
 #'

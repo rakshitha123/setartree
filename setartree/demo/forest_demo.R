@@ -38,8 +38,8 @@ autoplot(custom_forecasts)
 forest2 <- setarforest(data = web_traffic_train[-1],
                        label = web_traffic_train[,1],
                        bagging_freq = 3,
-                       stopping_criteria = "error_imp",
-                       categorical_covariates = c("Project", "Access", "Agent"))
+                       stopping_criteria = "both",
+                       categorical_covariates = "Project")
 
 # Obtaining predictions
 setartree:::forecast(forest2, web_traffic_test)

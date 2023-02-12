@@ -39,7 +39,7 @@
 #' setarforest(data = web_traffic_train[,-1],
 #'             label = web_traffic_train[,1],
 #'             bagging_freq = 2,
-#'             categorical_covariates = c("Project", "Access", "Agent"))
+#'             categorical_covariates = "Project")
 #' }
 #'
 #' @export
@@ -104,7 +104,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' forest2 <- setarforest(data = web_traffic_train[,-1],
 #'                        label = web_traffic_train[,1],
 #'                        bagging_freq = 2,
-#'                        categorical_covariates = c("Project", "Access", "Agent"))
+#'                        categorical_covariates = "Project")
 #' forecast(forest2, web_traffic_test)
 #' }
 #'
