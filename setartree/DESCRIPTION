@@ -14,10 +14,12 @@ License: MIT + file LICENSE
 URL: https://github.com/rakshitha123/SETAR_Trees
 BugReports: https://github.com/rakshitha123/SETAR_Trees/issues
 Depends:
-    R (>= 3.5.0), 
+    R (>= 3.5.0)
+Imports:
 	stats,
 	utils,
-	methods
+	methods,
+	generics (>= 0.1.2)
 Suggests: 
     forecast	
 Encoding: UTF-8
