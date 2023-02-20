@@ -8,9 +8,10 @@ Authors@R: c(
 	person("Geoffrey", "Webb", email = "geoff.webb@monash.edu", role = "ctb"))
 Maintainer: Rakshitha Godahewa <rakshithagw@gmail.com>
 Description: The implementation of a forecasting-specific tree-based model that is in particular suitable for global time series forecasting. 
-    The model uses the concept of Self Exciting Threshold Autoregressive (SETAR) models to define the node splits and thus, the model is named as SETAR-Tree.
+    The model uses the concept of Self Exciting Threshold Autoregressive (SETAR) models to define the node splits and thus, the model is named as SETAR-Tree. Godahewa et al. (2022) <arXiv:2211.08661v1>.
     The SETAR-Tree uses some time-series-specific splitting and stopping procedures. It trains global pooled regression models in the leaves allowing the models to learn cross-series information. The depth of the tree is controlled by conducting a statistical linearity test as well as measuring the error reduction percentage at each node split. Thus, the SETAR-Tree requires minimal external hyperparameter tuning and provides competitive results under its default configuration. 
     A forest is developed by extending the SETAR-Tree. The SETAR-Forest combines the forecasts provided by a collection of diverse SETAR-Trees during the forecasting process. 
+    There are also three sample datasets provided with the package to run the models. May (1976) <doi:10.1038/261459a0>, Hewamalage et al. (2021) <doi:10.1016/j.patcog.2021.108441> and Wikimedia Analytics Team (2022) <https://dumps.wikimedia.org/other/pageview_complete>.
 License: MIT + file LICENSE
 URL: https://github.com/rakshitha123/SETAR_Trees
 BugReports: https://github.com/rakshitha123/SETAR_Trees/issues
