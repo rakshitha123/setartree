@@ -30,7 +30,7 @@
 #' @importFrom methods is
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Training SETAR-Forest with a list of time series
 #' setarforest(chaotic_logistic_series, bagging_freq = 2)
 #'
@@ -46,20 +46,20 @@
 setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
 
   if(random_tree_significance & (verbose == 1 | verbose == 2))
-    print("'random_tree_significance' = TRUE ... Ignored 'significance' parameter.")
+    message("'random_tree_significance' = TRUE ... Ignored 'significance' parameter.")
   if(random_tree_error_threshold & (verbose == 1 | verbose == 2))
-    print("'random_tree_error_threshold' = TRUE ... Ignored 'error_threshold' parameter.")
+    message("'random_tree_error_threshold' = TRUE ... Ignored 'error_threshold' parameter.")
   if(random_tree_significance_divider & (verbose == 1 | verbose == 2))
-    print("'random_tree_significance_divider' = TRUE ... Ignored 'significance_divider' parameter.")
+    message("'random_tree_significance_divider' = TRUE ... Ignored 'significance_divider' parameter.")
 
   if(is(data, "list")){
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
     if(!is.null(label)){
-      print("'data' is a list of time series. 'label' is ignored.")
+      warning("'data' is a list of time series. 'label' is ignored.")
     }
     if(!is.null(categorical_covariates)){
-      print("'data' is a list of time series. 'categorical_covariates' is ignored.")
+      warning("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
     fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }else if(is(data, "data.frame") |  is(data, "matrix")){
@@ -95,7 +95,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @importFrom methods is
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Obtaining forecasts for a list of time series
 #' forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
 #' forecast(forest1, chaotic_logistic_series)
@@ -171,7 +171,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   start_time <- Sys.time()
 
   if(verbose == 1 | verbose == 2)
-    print("Started building SETAR-Forest")
+    message("Started building SETAR-Forest")
 
   output.forest <- list()
   output.forest$trees <- list()
@@ -181,7 +181,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   # Training multiple SETAR-Trees as required
   for(bag_f in 1:bagging_freq){
     if(verbose == 1 | verbose == 2)
-      print(paste0("Started processing tree ", bag_f))
+      message(paste0("Started processing tree ", bag_f))
 
     set.seed(bag_f)
     tree_indexes <- sort(sample(1:nrow(embed_data), num_indexes, replace = FALSE))
@@ -193,7 +193,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
       significance <- sample(seq(0.01, 0.1, length.out = 10), 1)
 
       if(verbose == 2)
-        print(paste0("Chosen significance for tree ", bag_f, ": ", significance))
+        message(paste0("Chosen significance for tree ", bag_f, ": ", significance))
     }
 
     if(random_tree_significance_divider){
@@ -201,7 +201,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
       significance_divider <- sample(2:10, 1)
 
       if(verbose == 2)
-        print(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
+        message(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
     }
 
     if(random_tree_error_threshold){
@@ -209,7 +209,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
       error_threshold <- sample(seq(0.001, 0.05, length.out = 50), 1)
 
       if(verbose == 2)
-        print(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
+        message(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
     }
 
     # Execute individual SETAR trees
@@ -228,7 +228,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   class(output.forest) <- "setarforest"
 
   if(verbose == 1 | verbose == 2)
-    print("Finished building SETAR-Forest")
+    message("Finished building SETAR-Forest")
 
   output.forest
 }

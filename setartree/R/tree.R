@@ -32,7 +32,7 @@
 #' @importFrom methods is
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Training SETAR-Tree with a list of time series
 #' setartree(chaotic_logistic_series)
 #'
@@ -50,10 +50,10 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
     if(!is.null(label)){
-      print("'data' is a list of time series. 'label' is ignored.")
+      warning("'data' is a list of time series. 'label' is ignored.")
     }
     if(!is.null(categorical_covariates)){
-      print("'data' is a list of time series. 'categorical_covariates' is ignored.")
+      warning("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
     fit.setartree.series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }else if(is(data, "data.frame") |  is(data, "matrix")){
@@ -89,7 +89,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' @importFrom methods is
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Obtaining forecasts for a list of time series
 #' tree1 <- setartree(chaotic_logistic_series)
 #' forecast(tree1, chaotic_logistic_series)
@@ -176,11 +176,11 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
   start_time <- Sys.time()
 
   if(verbose == 1 | verbose == 2)
-    print("Started building SETAR-Tree")
+    message("Started building SETAR-Tree")
 
   for(d in 1:depth){
     if(verbose == 1 | verbose == 2)
-      print(paste0("Depth: ", d))
+      message(paste0("Depth: ", d))
 
     level_th_lags <- NULL
     level_thresholds <- NULL
@@ -190,7 +190,7 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
 
     for(n in 1:length(node_data)){
       if(verbose == 2)
-        print(paste0("Node ", n))
+        message(paste0("Node ", n))
 
       best_cost <- Inf
       th <- NULL
@@ -199,8 +199,6 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
       if((nrow(node_data[[n]]) >  (2 * ncol(data) + 2)) & split_info[n] == 1){
 
         for(lg in 1:ncol(data)){
-          # print(paste0("Lag ", lg))
-
           # Finding the optimal lag and threshold that should be used for splitting
           # Optimised grid search
           ss_output <- find.cut.point(as.matrix(node_data[[n]][,-1]), as.matrix(node_data[[n]][,1]), node_data[[n]][,lg+1], start.con$nTh)
@@ -329,7 +327,7 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
   class(output.tree) <- "setartree"
 
   if(verbose == 1 | verbose == 2)
-    print("Finished building SETAR-Tree")
+    message("Finished building SETAR-Tree")
 
   output.tree
 }

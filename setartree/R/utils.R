@@ -134,7 +134,7 @@ check_linearity <- function(parent_node, child_nodes, significance, verbose = 2)
       is_significant <- FALSE
 
     if(verbose == 2)
-      print(paste0("Linearity Test P-value = ", p_value, " Significant ", is_significant))
+      message(paste0("Linearity Test P-value = ", p_value, " Significant ", is_significant))
   }
 
   is_significant
@@ -163,7 +163,7 @@ check_error_improvement <- function(parent_node, child_nodes, error_threshold, v
       is_improved <- FALSE
 
     if(verbose == 2)
-      print(paste0("Error Reduction = ", improvement, " Enough Reduction ", is_improved))
+      message(paste0("Error Reduction = ", improvement, " Enough Reduction ", is_improved))
   }
 
   is_improved
