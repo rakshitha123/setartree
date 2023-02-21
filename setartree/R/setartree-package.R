@@ -70,6 +70,12 @@
 #' @importFrom utils tail
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts
 #' @importFrom generics forecast
-
 NULL
+
+# Generics to re-export
+
+#' @export
+generics::forecast
+
+
 

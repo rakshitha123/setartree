@@ -2,6 +2,7 @@
 
 S3method(forecast,setarforest)
 S3method(forecast,setartree)
+export(forecast)
 export(setarforest)
 export(setartree)
 import(generics)

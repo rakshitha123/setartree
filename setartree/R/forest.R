@@ -79,6 +79,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @param object An object of class \code{\link{setarforest}} which is a trained SETAR-Forest model.
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when \code{newdata} is a list of time series. Default value is 5.
+#' @param ... Other arguments.
 #'
 #' @return If \code{newdata} is a list of time series, then an object of class \code{mforecast} is returned.
 #' The \code{plot} or \code{autoplot} functions in the R \code{forecast} package can then be used to produce a plot of any time series in the returned object which contains the following properties.
@@ -110,7 +111,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #'
 #' @method forecast setarforest
 #' @export
-forecast.setarforest <- function(object, newdata, h = 5){
+forecast.setarforest <- function(object, newdata, h = 5, ...){
   if(!is(object, "setarforest"))
     stop("'object' should be an object of class 'setarforest'")
 
