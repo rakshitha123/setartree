@@ -109,22 +109,19 @@ SS <- function(p, train_data, current_lg) {
 
 
 # A function to check whether there exists a remaining non-linearity in the parent node instances
-check_linearity <- function(parent_node, child_nodes, significance, verbose = 2){
+check_linearity <- function(parent_model, child_models, parent_node, significance, verbose = 2){
   lag <- ncol(parent_node) - 1
   is_significant <- TRUE
 
-  ss0 <- sum((parent_node$y - as.numeric(fit_global_model(parent_node)[["predictions"]])) ^2)
+  ss0 <- parent_model$RSS 
 
   if(ss0 == 0){
     is_significant <- FALSE
   }else{
-    train_residuals <- NULL
-    for(ln in 1:length(child_nodes)){
-      train_residuals <- c(train_residuals, (child_nodes[[ln]]$y - as.numeric(fit_global_model(child_nodes[[ln]])[["predictions"]])))
-    }
-
-    ss1 <- sum(train_residuals ^ 2)
-
+    ss1 <- 0
+    
+    for(ln in 1:length(child_models))
+      ss1 <- ss1 + child_models[[ln]]$RSS  
 
     # Compute F-statistic. For details, see https://online.stat.psu.edu/stat501/lesson/6/6.2
     f_stat <- ((ss0 - ss1)/(lag+1))/(ss1/(nrow(parent_node) - 2*lag - 2))
@@ -142,20 +139,18 @@ check_linearity <- function(parent_node, child_nodes, significance, verbose = 2)
 
 
 # A function to check whether a considerable error reduction (depends on error threshold) can be gained by splitting a parent node into child nodes
-check_error_improvement <- function(parent_node, child_nodes, error_threshold, verbose = 2){
+check_error_improvement <- function(parent_model, child_models, error_threshold, verbose = 2){
   is_improved <- TRUE
 
-  ss0 <- sum((parent_node$y - as.numeric(fit_global_model(parent_node)[["predictions"]])) ^2)
+  ss0 <- parent_model$RSS 
 
   if(ss0 == 0){
     is_improved <- FALSE
   }else{
-    train_residuals <- NULL
-    for(ln in 1:length(child_nodes)){
-      train_residuals <- c(train_residuals, (child_nodes[[ln]]$y - as.numeric(fit_global_model(child_nodes[[ln]])[["predictions"]])))
-    }
-
-    ss1 <- sum(train_residuals ^ 2)
+    ss1 <- 0
+    
+    for(ln in 1:length(child_models))
+      ss1 <- ss1 + child_models[[ln]]$RSS  
 
     improvement <- (ss0-ss1)/ss0
 
