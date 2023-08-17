@@ -67,7 +67,7 @@
 #' @import methods
 #' @import generics
 #' @importFrom methods is
-#' @importFrom utils tail lsf.str
+#' @importFrom utils tail
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts qnorm
 #' @importFrom generics forecast
 #' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster

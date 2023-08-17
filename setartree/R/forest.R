@@ -32,7 +32,6 @@
 #' \item{execution_time}{Execution time of SETAR-Forest.}
 #'
 #' @importFrom methods is
-#' @importFrom utils lsf.str
 #' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster 
 #'
 #' @examples
@@ -210,7 +209,7 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   # Training multiple SETAR-Trees as required
   if(num_cores > 1){
     cluster <- parallel::makeCluster(num_cores)
-    parallel::clusterExport(cluster, as.character(unclass(lsf.str(envir = asNamespace("setartree"), all = TRUE))))
+    parallel::clusterExport(cluster, c("setartree", "fit.setartree.df", "fit.setartree.series", "do_one_hot_encoding", "fit_global_model", "find.cut.point", "create_split", "check_linearity", "check_error_improvement", "predict.my.lm", "create_formula", "create_split", "tree_traverse", "get_leaf_index", "SS"), envir=environment())
     
     output.forest$trees <- parallel::parLapply(cluster, sapply(1:bagging_freq, list), function(bag_f){ 
       
