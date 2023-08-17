@@ -32,6 +32,7 @@
 #' \item{execution_time}{Execution time of SETAR-Forest.}
 #'
 #' @importFrom methods is
+#' @importFrom utils lsf.str
 #' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster 
 #'
 #' @examples
@@ -107,6 +108,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' If \code{newdata} is a dataframe/matrix, then a list containing the prediction and prediction intervals (upper and lower bounds) of each instance is returned.
 #'
 #' @importFrom methods is
+#' @importFrom stats qnorm
 #'
 #' @examples
 #' \donttest{
@@ -199,7 +201,11 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
   num_indexes <- round(nrow(embed_data) * bagging_fraction)
   
-  num_cores <- parallel::detectCores()
+  chk <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
+  if(nzchar(chk) && chk == "TRUE")
+    num_cores <- 1
+  else
+    num_cores <- parallel::detectCores()
   
   # Training multiple SETAR-Trees as required
   if(num_cores > 1){

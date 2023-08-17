@@ -97,6 +97,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' If \code{newdata} is a dataframe/matrix, then a list containing the predictions, prediction intervals (upper and lower bounds), the size and standard deviations of the residuals of the models used to get each prediction is returned.
 #'
 #' @importFrom methods is
+#' @importFrom stats qnorm
 #'
 #' @examples
 #' \donttest{
