@@ -94,7 +94,7 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
 #' upper (upper bound of confidence intervals),
 #' lower (lower bound of confidence intervals) and
 #' level (confidence level of prediction intervals).}
-#' If \code{newdata} is a dataframe/matrix, then a list containing the predictions, prediction intervals (upper and lower bounds) and the standard deviations of the residuals of the models used to get each prediction is returned.
+#' If \code{newdata} is a dataframe/matrix, then a list containing the predictions, prediction intervals (upper and lower bounds), the size and standard deviations of the residuals of the models used to get each prediction is returned.
 #'
 #' @importFrom methods is
 #'
@@ -426,9 +426,11 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
   newdata <- newdata[,tree$coefficients]
   all_leaf_models <- tree$leaf_models
   all_stds <- tree$stds
+  all_num_instances <- tree$leaf_instance_dis
 
   predictions <- NULL
-  stds <- NULL 
+  stds <- NULL
+  num_instances <- NULL
   
   for(le in level){
     assign(paste0("lower_", le, "_intervals"), NULL)
@@ -442,6 +444,7 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
       
       predictions <- c(predictions, pred)
       stds <- c(stds, all_stds[leaf_index])
+      num_instances <- c(num_instances, all_num_instances[leaf_index])
         
       for(le in level){
         multiplier <- abs(qnorm((100 - le)/200))
@@ -452,6 +455,7 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
   }else{
     predictions <- predict.glm(object = all_leaf_models, newdata = newdata)
     stds <- rep(all_stds, length(predictions))
+    num_instances <- rep(all_num_instances, length(predictions))
     
     for(le in level){
       multiplier <- abs(qnorm((100 - le)/200))
@@ -473,7 +477,8 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
   list("predictions" = as.numeric(predictions), 
        "lower_intervals" = as.data.frame(lower_intervals), 
        "upper_intervals" = as.data.frame(upper_intervals),
-       "stds" = as.numeric(stds)
+       "stds" = as.numeric(stds),
+       "size" = as.numeric(num_instances)
        )
 }
 

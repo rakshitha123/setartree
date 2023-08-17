@@ -17,6 +17,7 @@ Imports:
 	stats,
 	utils,
 	methods,
+	parallel,
 	generics (>= 0.1.2)
 Suggests: 
     forecast	

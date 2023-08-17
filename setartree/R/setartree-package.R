@@ -8,7 +8,7 @@
 #' If you use the package, please cite the following work in your publications:
 #'
 #' Godahewa, R., Webb, G. I., Schmidt, D., & Bergmeir, C. (2023). SETAR-Tree: A novel and accurate tree algorithm for
-#' global time series forecasting. Machine Learning (forthcoming). \url{https://arxiv.org/abs/2211.08661}
+#' global time series forecasting. Machine Learning, 112, 2555-2591. \url{https://doi.org/10.1007/s10994-023-06316-x}
 #'
 #' Demos for using SETAR-Tree and SETAR-Forest are available.
 #' To get a list of them, type:
@@ -60,7 +60,7 @@
 #' @references
 #'
 #' Godahewa, R., Webb, G. I., Schmidt, D., & Bergmeir, C. (2023). SETAR-Tree: A novel and accurate tree algorithm for
-#' global time series forecasting. Machine Learning (forthcoming). \url{https://arxiv.org/abs/2211.08661}
+#' global time series forecasting. Machine Learning, 112, 2555-2591. \url{https://doi.org/10.1007/s10994-023-06316-x}
 #'
 #'
 #' @keywords package setartree forecasting
@@ -70,6 +70,7 @@
 #' @importFrom utils tail
 #' @importFrom stats as.formula embed glm pf predict predict.glm ts
 #' @importFrom generics forecast
+#' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster
 NULL
 
 # Generics to re-export

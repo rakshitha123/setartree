@@ -15,6 +15,8 @@
 #' @param significance_divider In each SETAR-Tree in the forest, the corresponding significance in a tree level is divided by this value. Default value is 2.
 #' @param error_threshold In each SETAR-Tree in the forest, the minimum error reduction percentage between parent and child nodes to make a split. Default value is 0.03.
 #' @param stopping_criteria The required stopping criteria for each SETAR-Tree in the forest: linearity test (lin_test), error reduction percentage (error_imp) or linearity test and error reduction percentage (both). Default value is \code{"both"}.
+#' @param mean_normalisation Whether each series should be normalised by deducting its mean value before building the forest. This parameter is only required when \code{data} is a list of time series. Default value is FALSE.
+#' @param window_normalisation Whether the window-wise normalisation should be applied before building the forest. This parameter is only required when \code{data} is a list of time series. When this is TRUE, each row of the training embedded matrix is normalised by deducting its mean value before building the forest. Default value is FALSE.
 #' @param verbose Controls the level of the verbosity of SETAR-Forest: 0 (errors/warnings), 1 (limited amount of information including the depth of the currently processing tree), 2 (full training information including the depth of the currently processing tree and stopping criterion related details in each tree). Default value is 2.
 #' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when \code{data} is a dataframe/matrix and it contains categorical variables.
 #'
@@ -24,10 +26,13 @@
 #' \item{feature_names}{Names of the input features.}
 #' \item{coefficients}{Names of the coefficients of leaf node regresion models in each SETAR-Tree in the forest.}
 #' \item{categorical_covariate_values}{Information about the categorical covarites used during training (only if applicable).}
+#' \item{mean_normalisation}{Whether mean normalisation was applied for the training data.}
+#' \item{window_normalisation}{Whether window normalisation was applied for the training data.}
 #' \item{input_type}{Type of input data used to train the SETAR-Forest. This is \code{list} if \code{data} is a list of time series, and \code{df} if \code{data} is a dataframe/matrix containing model inputs.}
 #' \item{execution_time}{Execution time of SETAR-Forest.}
 #'
 #' @importFrom methods is
+#' @importFrom parallel detectCores makeCluster clusterExport parLapply stopCluster 
 #'
 #' @examples
 #' \donttest{
@@ -43,7 +48,7 @@
 #' }
 #'
 #' @export
-setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2, categorical_covariates = NULL){
+setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2, categorical_covariates = NULL){
 
   if(random_tree_significance & (verbose == 1 | verbose == 2))
     message("'random_tree_significance' = TRUE ... Ignored 'significance' parameter.")
@@ -61,11 +66,15 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
     if(!is.null(categorical_covariates)){
       warning("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
-    fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
+    fit.setarforest.series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
   }else if(is(data, "data.frame") |  is(data, "matrix")){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
-    fit.setarforest.df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "df", verbose, categorical_covariates)
+    if(mean_normalisation)
+      warning("'data' is a dataframe/matrix. 'mean_normalisation' is ignored.")
+    if(window_normalisation)
+      warning("'data' is a dataframe/matrix. 'window_normalisation' is ignored.")
+    fit.setarforest.df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, FALSE, FALSE, "df", verbose, categorical_covariates)
   }else{
     stop("'data' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -79,6 +88,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @param object An object of class \code{\link{setarforest}} which is a trained SETAR-Forest model.
 #' @param newdata A list of time series which need forecasts or a dataframe/matrix of new instances which need predictions.
 #' @param h The required number of forecasts (forecast horizon). This parameter is only required when \code{newdata} is a list of time series. Default value is 5.
+#' @param level Confidence level for prediction intervals. Default value is c(80, 95).
 #' @param ... Other arguments.
 #'
 #' @return If \code{newdata} is a list of time series, then an object of class \code{mforecast} is returned.
@@ -86,12 +96,15 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' \item{method}{A vector containing the name of the forecasting method ("SETAR-Forest").}
 #' \item{forecast}{A list of objects of class \code{forecast}.
 #' Each list object is corresponding with a time series and its forecasts.
-#' Each list object contains 4 properties:
+#' Each list object contains 7 properties:
 #' method (the name of the forecasting method, SETAR-Forest, as a character string),
 #' x (the original time series),
-#' mean (point forecasts as a time series) and
-#' series (the name of the series as a character string).}
-#' If \code{newdata} is a dataframe/matrix, then a vector containing the prediction of each instance is returned.
+#' mean (point forecasts as a time series),
+#' series (the name of the series as a character string),
+#' upper (upper bound of confidence intervals),
+#' lower (lower bound of confidence intervals) and
+#' level (confidence level of prediction intervals).}
+#' If \code{newdata} is a dataframe/matrix, then a list containing the prediction and prediction intervals (upper and lower bounds) of each instance is returned.
 #'
 #' @importFrom methods is
 #'
@@ -111,10 +124,17 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #'
 #' @method forecast setarforest
 #' @export
-forecast.setarforest <- function(object, newdata, h = 5, ...){
+forecast.setarforest <- function(object, newdata, h = 5, level = c(80, 95), ...){
   if(!is(object, "setarforest"))
     stop("'object' should be an object of class 'setarforest'")
 
+  if(min(level) > 0 && max(level) < 1) 
+    level <- 100 * level
+  else if(min(level) < 0 || max(level) > 99.99) 
+    stop("Confidence limit out of range")
+  
+  level <- sort(level)
+  
   if(is(newdata, "list")){
     if(length(newdata) < 1)
       stop("'newdata' should contain at least one time series.")
@@ -122,7 +142,7 @@ forecast.setarforest <- function(object, newdata, h = 5, ...){
     if(object$input_type != "list")
       stop("'newdata' is a list of time series. But the given 'setarforest' object is not fitted using a list of time series.")
 
-    predictseries.setarforest(object, newdata, h)
+    predictseries.setarforest(object, newdata, h, level)
   }else if(is(newdata, "data.frame") | is(newdata, "matrix")){
     if(nrow(newdata) < 1)
       stop("'newdata' should contain at least one test instance.")
@@ -130,7 +150,7 @@ forecast.setarforest <- function(object, newdata, h = 5, ...){
     if(object$input_type != "df")
       stop("'newdata' is a dataframe/matrix. But the given 'setarforest' object is not fitted using a dataframe/matrix.")
 
-    predict(object, newdata)
+    predict(object, newdata, level)
   }else{
     stop("'newdata' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -138,7 +158,7 @@ forecast.setarforest <- function(object, newdata, h = 5, ...){
 
 
 # Function to fit a SETAR-Forest given a dataframe/matrix of inputs
-fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", type = "df", verbose = 2, categorical_covariates = NULL){
+fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, type = "df", verbose = 2, categorical_covariates = NULL){
 
   data <- as.data.frame(data)
   input_feature_names <- colnames(data)
@@ -178,43 +198,90 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   output.forest$trees <- list()
 
   num_indexes <- round(nrow(embed_data) * bagging_fraction)
-
+  
+  num_cores <- parallel::detectCores()
+  
   # Training multiple SETAR-Trees as required
-  for(bag_f in 1:bagging_freq){
-    if(verbose == 1 | verbose == 2)
-      message(paste0("Started processing tree ", bag_f))
+  if(num_cores > 1){
+    cluster <- parallel::makeCluster(num_cores)
+    parallel::clusterExport(cluster, as.character(unclass(lsf.str(envir = asNamespace("setartree"), all = TRUE))))
+    
+    output.forest$trees <- parallel::parLapply(cluster, sapply(1:bagging_freq, list), function(bag_f){ 
+      
+      if(verbose == 1 | verbose == 2)
+        message(paste0("Started processing tree ", bag_f))
 
-    set.seed(bag_f)
-    tree_indexes <- sort(sample(1:nrow(embed_data), num_indexes, replace = FALSE))
-
-    current_tree_data <- embed_data[tree_indexes,]
-
-    if(random_tree_significance){
       set.seed(bag_f)
-      significance <- sample(seq(0.01, 0.1, length.out = 10), 1)
+      tree_indexes <- sort(sample(1:nrow(embed_data), num_indexes, replace = FALSE))
 
-      if(verbose == 2)
-        message(paste0("Chosen significance for tree ", bag_f, ": ", significance))
-    }
+      current_tree_data <- embed_data[tree_indexes,]
 
-    if(random_tree_significance_divider){
+      if(random_tree_significance){
+        set.seed(bag_f)
+        significance <- sample(seq(0.01, 0.1, length.out = 10), 1)
+
+        if(verbose == 2)
+          message(paste0("Chosen significance for tree ", bag_f, ": ", significance))
+      }
+
+      if(random_tree_significance_divider){
+        set.seed(bag_f)
+        significance_divider <- sample(2:10, 1)
+
+        if(verbose == 2)
+          message(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
+      }
+
+      if(random_tree_error_threshold){
+        set.seed(bag_f)
+        error_threshold <- sample(seq(0.001, 0.05, length.out = 50), 1)
+
+        if(verbose == 2)
+          message(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
+      }
+
+      # Execute individual SETAR trees
+      setartree(current_tree_data[,-1], current_tree_data[,1], ncol(data), depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
+    })
+    
+    parallel::stopCluster(cluster)
+  }else{
+    for(bag_f in 1:bagging_freq){
+      if(verbose == 1 | verbose == 2)
+        message(paste0("Started processing tree ", bag_f))
+      
       set.seed(bag_f)
-      significance_divider <- sample(2:10, 1)
-
-      if(verbose == 2)
-        message(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
+      tree_indexes <- sort(sample(1:nrow(embed_data), num_indexes, replace = FALSE))
+      
+      current_tree_data <- embed_data[tree_indexes,]
+      
+      if(random_tree_significance){
+        set.seed(bag_f)
+        significance <- sample(seq(0.01, 0.1, length.out = 10), 1)
+        
+        if(verbose == 2)
+          message(paste0("Chosen significance for tree ", bag_f, ": ", significance))
+      }
+      
+      if(random_tree_significance_divider){
+        set.seed(bag_f)
+        significance_divider <- sample(2:10, 1)
+        
+        if(verbose == 2)
+          message(paste0("Chosen significance divider for tree ", bag_f, ": ", significance_divider))
+      }
+      
+      if(random_tree_error_threshold){
+        set.seed(bag_f)
+        error_threshold <- sample(seq(0.001, 0.05, length.out = 50), 1)
+        
+        if(verbose == 2)
+          message(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
+      }
+      
+      # Execute individual SETAR trees
+      output.forest$trees[[bag_f]] <- setartree(current_tree_data[,-1], current_tree_data[,1], ncol(data), depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
     }
-
-    if(random_tree_error_threshold){
-      set.seed(bag_f)
-      error_threshold <- sample(seq(0.001, 0.05, length.out = 50), 1)
-
-      if(verbose == 2)
-        message(paste0("Chosen error threshold for tree ", bag_f, ": ", error_threshold))
-    }
-
-    # Execute individual SETAR trees
-    output.forest$trees[[bag_f]] <- setartree(current_tree_data[,-1], current_tree_data[,1], ncol(data), depth, significance, significance_divider, error_threshold, stopping_criteria, verbose)
   }
 
   end_time <- Sys.time()
@@ -224,6 +291,8 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
   output.forest$feature_names <- input_feature_names
   output.forest$coefficients <- output.forest$trees[[1]]$coefficients
   output.forest$categorical_covariate_values <- categorical_covariates_unique_vals
+  output.forest$mean_normalisation <- mean_normalisation
+  output.forest$window_normalisation <- window_normalisation
   output.forest$input_type <- type
   output.forest$execution_time <- exec_time
   class(output.forest) <- "setarforest"
@@ -236,12 +305,16 @@ fit.setarforest.df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
 
 # Function to fit a SETAR-Forest given a list of time series
-fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", verbose = 2){
+fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2){
 
   embedded_series <- NULL
 
   for (i in 1:length(time_series_list)) {
     time_series <- as.numeric(unlist(time_series_list[i], use.names = FALSE))
+    
+    if(mean_normalisation)
+      time_series <- time_series - mean(time_series, na.rm = TRUE)
+    
     embedded <- embed(time_series, lag + 1)
 
     if (!is.null(embedded_series))
@@ -249,17 +322,20 @@ fit.setarforest.series <- function(time_series_list, lag = 10, bagging_fraction 
 
     embedded_series <- rbind(embedded_series, embedded)
   }
+  
+  if(window_normalisation)
+    embedded_series <- embedded_series - rowMeans(embedded_series[,2:ncol(embedded_series)]) 
 
   embedded_series <- as.data.frame(embedded_series)
   colnames(embedded_series)[1] <- "y"
   colnames(embedded_series)[2:(lag + 1)] <- paste("Lag", 1:lag, sep = "")
 
-  fit.setarforest.df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, "list", verbose)
+  fit.setarforest.df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, "list", verbose)
 }
 
 
 # Predict method for SETAR-Forest fits
-predict.setarforest <- function(forest, newdata){
+predict.setarforest <- function(forest, newdata, level = c(80, 95)){
   newdata <- as.data.frame(newdata)
 
   if(!all(forest$feature_names %in% colnames(newdata))){
@@ -293,27 +369,65 @@ predict.setarforest <- function(forest, newdata){
 
   all_tree_models <- forest$trees
 
-  predictions <- forecast.setartree(all_tree_models[[1]], newdata)
+  tree_output <- forecast.setartree(all_tree_models[[1]], newdata, level = level)
+  predictions <- tree_output[["predictions"]]
+  pooled_var <- (tree_output[["size"]] - 1)*(tree_output[["stds"]]^2)
+  full_size <- tree_output[["size"]] - 1
 
-  for(t in 2:length(all_tree_models))
-    predictions <- predictions + forecast.setartree(all_tree_models[[t]], newdata)
+  for(t in 2:length(all_tree_models)){
+    tree_output <- forecast.setartree(all_tree_models[[t]], newdata, level = level)
+    predictions <- predictions + tree_output[["predictions"]]
+    pooled_var <- pooled_var + ((tree_output[["size"]] - 1)*(tree_output[["stds"]]^2))
+    full_size <- full_size + (tree_output[["size"]] - 1)
+  }
 
   predictions <- predictions/length(all_tree_models) # Final predictions are the average of predictions given by all trees
-
-  predictions
+  pooled_var <- pooled_var/full_size
+  stds <- sqrt(pooled_var)
+  
+  lower_intervals <- NULL
+  upper_intervals <- NULL
+  
+  for(le in level){
+    multiplier <- abs(qnorm((100 - le)/200))
+    lower_intervals <- cbind(lower_intervals,  (predictions - multiplier*stds))
+    upper_intervals <- cbind(upper_intervals,  (predictions + multiplier*stds))
+  }
+  
+  colnames(lower_intervals) <- colnames(upper_intervals) <- as.character(level)
+  
+  list("predictions" = as.numeric(predictions), 
+       "lower_intervals" = as.data.frame(lower_intervals), 
+       "upper_intervals" = as.data.frame(upper_intervals)
+  )
 }
 
 
 # Function to obtain predictions for a given list of time series
-predictseries.setarforest <- function(forest, time_series_list, h = 5){
+predictseries.setarforest <- function(forest, time_series_list, h = 5, level = c(80, 95)){
 
   final_lags <- NULL
   forecasts <- NULL
+  
+  series_means <- NULL
+  
+  for(le in level){
+    assign(paste0("all_lower_", le, "_intervals"), NULL)
+    assign(paste0("all_upper_", le, "_intervals"), NULL)
+  }
+  
   lag <- forest$lag
   coefficient_names <- forest$coefficients
 
   for (i in 1:length(time_series_list)) {
     time_series <- as.numeric(unlist(time_series_list[i], use.names = FALSE))
+    
+    if(forest$mean_normalisation){
+      mean_val <- mean(time_series, na.rm = TRUE)
+      series_means <- c(series_means, mean_val)
+      time_series <- time_series - mean_val
+    }
+    
     current_series_final_lags <- t(as.matrix(rev(tail(time_series, lag))))
 
     if (!is.null(final_lags))
@@ -321,25 +435,65 @@ predictseries.setarforest <- function(forest, time_series_list, h = 5){
 
     final_lags <- rbind(final_lags, current_series_final_lags)
   }
+  
+  if(forest$window_normalisation){
+    final_lags_row_means <- rowMeans(final_lags) 
+    final_lags <- final_lags - final_lags_row_means
+  }
 
   final_lags <- as.data.frame(final_lags)
   colnames(final_lags) <- coefficient_names
 
   for(ho in 1:h){
-    horizon_predictions <- as.numeric(predict(forest, as.data.frame(final_lags)))
+    horizon_output <- predict(forest, as.data.frame(final_lags), level)
+    horizon_predictions <- horizon_output[["predictions"]]
+    
+    if(forest$window_normalisation)
+      horizon_predictions <- horizon_predictions + final_lags_row_means
+    
     forecasts <- cbind(forecasts, horizon_predictions)
+    
+    if(forest$window_normalisation){
+      for(le in level){
+        assign(paste0("all_lower_", le, "_intervals"), cbind(eval(parse(text=paste0("all_lower_", le, "_intervals"))), (eval(parse(text=paste0("horizon_output[['lower_intervals']][[as.character(", le, ")]]"))) + final_lags_row_means)))
+        assign(paste0("all_upper_", le, "_intervals"), cbind(eval(parse(text=paste0("all_upper_", le, "_intervals"))), (eval(parse(text=paste0("horizon_output[['upper_intervals']][[as.character(", le, ")]]"))) + final_lags_row_means)))
+      }
+    }else{
+      for(le in level){
+        assign(paste0("all_lower_", le, "_intervals"), cbind(eval(parse(text=paste0("all_lower_", le, "_intervals"))), eval(parse(text=paste0("horizon_output[['lower_intervals']][[as.character(", le, ")]]")))))
+        assign(paste0("all_upper_", le, "_intervals"), cbind(eval(parse(text=paste0("all_upper_", le, "_intervals"))), eval(parse(text=paste0("horizon_output[['upper_intervals']][[as.character(", le, ")]]")))))
+      }
+    }
 
     # Updating the test set for the next horizon
     if(ho < h){
       final_lags <- final_lags[-lag]
+      
+      if(forest$window_normalisation)
+        final_lags <- final_lags + final_lags_row_means
 
       # Updating lags for the next horizon
       final_lags <- cbind(horizon_predictions, final_lags)
+      
+      if(forest$window_normalisation){
+        final_lags_row_means <- rowMeans(final_lags) 
+        final_lags <- final_lags - final_lags_row_means
+      }
+      
       colnames(final_lags) <- coefficient_names
       final_lags <- as.data.frame(final_lags)
     }
   }
 
+  if(forest$mean_normalisation){
+    forecasts <- forecasts + series_means
+    
+    for(le in level){
+      assign(paste0("all_lower_", le, "_intervals"), (eval(parse(text=paste0("all_lower_", le, "_intervals"))) + series_means))
+      assign(paste0("all_upper_", le, "_intervals"), (eval(parse(text=paste0("all_upper_", le, "_intervals"))) + series_means))
+    }
+  }
+  
   results <- list()
   results$method <- rep("SETAR-Forest", length(time_series_list))
   names(results$method) <- paste0("T", 1:length(time_series_list))
@@ -352,6 +506,20 @@ predictseries.setarforest <- function(forest, time_series_list, h = 5){
     current_result$mean = ts(as.numeric(forecasts[i,]), start = length(time_series)+1)
     current_result$x = ts(time_series)
     current_result$series <- paste0("T", i)
+    current_result$level <- level
+    
+    u <- NULL
+    l <- NULL
+    
+    for(le in level){
+      u <- cbind(u, eval(parse(text=paste0("as.numeric(all_upper_", le, "_intervals[i,])"))))
+      l <- cbind(l, eval(parse(text=paste0("as.numeric(all_lower_", le, "_intervals[i,])"))))
+    }
+    
+    current_result$upper = ts(as.matrix(u), start = length(time_series)+1)
+    current_result$lower = ts(as.matrix(l), start = length(time_series)+1)
+    colnames(current_result$upper) <- colnames(current_result$lower) <- paste0(level, "%")
+    
     class(current_result) <- "forecast"
     results$forecast[[paste0("T", i)]] <- current_result
   }
