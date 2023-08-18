@@ -60,6 +60,8 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
   if(is(data, "list")){
     if(length(data) < 1)
       stop("'data' should contain at least one time series.")
+    if(lag < 2)
+      stop("'lag' should be greater than 1.")
     if(!is.null(label)){
       warning("'data' is a list of time series. 'label' is ignored.")
     }
