@@ -147,7 +147,7 @@ find.cut.point <- function(X, y, x.ix, k, w = NULL)
 
 predict.my.lm <- function (rv, X)
 {
-  if (class(rv) != "my.lm")
+  if (!is(rv, "my.lm"))
   {
     stop("This predict method requires a my.lm object")
   }

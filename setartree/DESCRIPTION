@@ -1,6 +1,6 @@
 Package: setartree
-Title: SETAR-Tree: A Novel and Accurate Tree Algorithm for Global Time Series Forecasting
-Version: 0.1.0
+Title: SETAR-Tree - A Novel and Accurate Tree Algorithm for Global Time Series Forecasting
+Version: 0.2.0
 Authors@R: c(
     person("Rakshitha", "Godahewa", email = "rakshithagw@gmail.com", role = c("cre", "aut", "cph")),
     person("Christoph", "Bergmeir", email = "christoph.bergmeir@monash.edu", role = "aut"),
