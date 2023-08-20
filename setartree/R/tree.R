@@ -62,11 +62,11 @@ setartree <- function(data, label = NULL, lag = 10, depth = 1000, significance =
     if(!is.null(categorical_covariates)){
       warning("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
-    fit.setartree.series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
+    fit_setartree_series(data, lag, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
   }else if(is(data, "data.frame") |  is(data, "matrix")){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
-    fit.setartree.df(data, label, depth, significance, significance_divider, error_threshold, stopping_criteria, FALSE, FALSE, "df", verbose, categorical_covariates)
+    fit_setartree_df(data, label, depth, significance, significance_divider, error_threshold, stopping_criteria, FALSE, FALSE, "df", verbose, categorical_covariates)
   }else{
     stop("'data' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -135,7 +135,7 @@ forecast.setartree <- function(object, newdata, h = 5, level = c(80, 95), ...){
     if(object$input_type != "list")
       stop("'newdata' is a list of time series. But the given 'setartree' object is not fitted using a list of time series.")
 
-    predictseries.setartree(object, newdata, h, level)
+    predict_series_setartree(object, newdata, h, level)
   }else if(is(newdata, "data.frame") |  is(newdata, "matrix")){
     if(nrow(newdata) < 1)
       stop("'newdata' should contain at least one test instance.")
@@ -143,7 +143,7 @@ forecast.setartree <- function(object, newdata, h = 5, level = c(80, 95), ...){
     if(object$input_type != "df")
       stop("'newdata' is a dataframe/matrix. But the given 'setartree' object is not fitted using a dataframe/matrix.")
 
-    predict(object, newdata, level)
+    predict_setartree(object, newdata, level)
   }else{
     stop("'newdata' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -151,7 +151,7 @@ forecast.setartree <- function(object, newdata, h = 5, level = c(80, 95), ...){
 
 
 # Function to fit a SETAR-Tree given a dataframe/matrix of inputs
-fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, type = "df", verbose = 2, categorical_covariates = NULL){
+fit_setartree_df <- function(data, label, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, type = "df", verbose = 2, categorical_covariates = NULL){
 
   # Set list of defaults
   start.con <- list(nTh = 15) # Number of thresholds considered when making each split to define the optimal lag/feature
@@ -321,7 +321,7 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
 
     # Train a linear model per each leaf node
     for(ln in 1:length(leaf_nodes)){ 
-      leaf_residuals <- leaf_nodes[[ln]]$y - as.numeric(predict.my.lm(leaf_trained_models[[ln]], as.matrix(leaf_nodes[[ln]][,2:ncol(leaf_nodes[[ln]])])))
+      leaf_residuals <- leaf_nodes[[ln]]$y - as.numeric(predict_my_lm(leaf_trained_models[[ln]], as.matrix(leaf_nodes[[ln]][,2:ncol(leaf_nodes[[ln]])])))
       leaf_stds_type_1 <- c(leaf_stds_type_1, sqrt(sum(leaf_residuals^2)/(nrow(leaf_nodes[[ln]]) - ncol(data))))
       leaf_instance_dis <- c(leaf_instance_dis, nrow(leaf_nodes[[ln]]))
     }
@@ -366,7 +366,7 @@ fit.setartree.df <- function(data, label, depth = 1000, significance = 0.05, sig
 
 
 # Function to fit a SETAR-Tree given a list of time series
-fit.setartree.series <- function(time_series_list, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2){
+fit_setartree_series <- function(time_series_list, lag = 10, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2){
 
   embedded_series <- NULL
 
@@ -391,12 +391,12 @@ fit.setartree.series <- function(time_series_list, lag = 10, depth = 1000, signi
   colnames(embedded_series)[1] <- "y"
   colnames(embedded_series)[2:(lag + 1)] <- paste("Lag", 1:lag, sep = "")
 
-  fit.setartree.df(embedded_series[,-1], embedded_series[,1], depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, "list", verbose)
+  fit_setartree_df(embedded_series[,-1], embedded_series[,1], depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, "list", verbose)
 }
 
 
 # Predict method for SETAR-Tree fits
-predict.setartree <- function(tree, newdata, level = c(80, 95)){
+predict_setartree <- function(tree, newdata, level = c(80, 95)){
   newdata <- as.data.frame(newdata)
 
   if(!all(tree$feature_names %in% colnames(newdata))){
@@ -443,7 +443,7 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
   if(tree$num_leaves > 1){
     for(r in 1:nrow(newdata)){
       leaf_index <- get_leaf_index(newdata[r,], tree$opt_lags, tree$opt_thresholds) # Identify the leaf node corresponding with the new data
-      pred <- predict.my.lm(all_leaf_models[[leaf_index]], as.matrix(newdata[r,]))
+      pred <- predict_my_lm(all_leaf_models[[leaf_index]], as.matrix(newdata[r,]))
       
       predictions <- c(predictions, pred)
       stds <- c(stds, all_stds[leaf_index])
@@ -487,7 +487,7 @@ predict.setartree <- function(tree, newdata, level = c(80, 95)){
 
 
 # Function to obtain predictions for a given list of time series
-predictseries.setartree <- function(tree, time_series_list, h = 5, level = c(80, 95)){
+predict_series_setartree <- function(tree, time_series_list, h = 5, level = c(80, 95)){
 
   final_lags <- NULL
   forecasts <- NULL
@@ -528,7 +528,7 @@ predictseries.setartree <- function(tree, time_series_list, h = 5, level = c(80,
   colnames(final_lags) <- coefficient_names
 
   for(ho in 1:h){
-    horizon_output <- predict(tree, as.data.frame(final_lags), level)
+    horizon_output <- predict_setartree(tree, as.data.frame(final_lags), level)
     horizon_predictions <- horizon_output[["predictions"]] 
     
     if(tree$window_normalisation)

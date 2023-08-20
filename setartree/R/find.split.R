@@ -145,7 +145,7 @@ find.cut.point <- function(X, y, x.ix, k, w = NULL)
 }
 
 
-predict.my.lm <- function (rv, X)
+predict_my_lm <- function (rv, X)
 {
   if (!is(rv, "my.lm"))
   {

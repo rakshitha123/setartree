@@ -1,0 +1,9 @@
+Version 0.2.0 (XX-XX-2023):
+
+- Predictions intervals
+- Flexibility of normalising time series before model training: mean normalisation and per-window normalisation
+- Faster execution of SETAR-Forest using parallelising the execution of SETAR-Trees
+
+Version 0.1.0 (22-02-2023):
+
+- Implementations of SETAR-Tree and SETAR-Forest models
