@@ -1,4 +1,7 @@
-Version 0.2.0 (XX-XX-2023):
+Version 0.2.1 (XX-XX-2023):
+- Fixed an issue in SETAR-Forest
+
+Version 0.2.0 (21-08-2023):
 
 - Predictions intervals
 - Flexibility of normalising time series before model training: mean normalisation and per-window normalisation

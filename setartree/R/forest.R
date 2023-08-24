@@ -18,6 +18,7 @@
 #' @param mean_normalisation Whether each series should be normalised by deducting its mean value before building the forest. This parameter is only required when \code{data} is a list of time series. Default value is FALSE.
 #' @param window_normalisation Whether the window-wise normalisation should be applied before building the forest. This parameter is only required when \code{data} is a list of time series. When this is TRUE, each row of the training embedded matrix is normalised by deducting its mean value before building the forest. Default value is FALSE.
 #' @param verbose Controls the level of the verbosity of SETAR-Forest: 0 (errors/warnings), 1 (limited amount of information including the depth of the currently processing tree), 2 (full training information including the depth of the currently processing tree and stopping criterion related details in each tree). Default value is 2.
+#' @param num_cores The number of cores to be used. \code{num_cores > 1} means parallel processing. When not provided, it will find the available number of cores and use those to run the SETAR-Trees in the forest in parallel.
 #' @param categorical_covariates Names of the categorical covariates in the input data. This parameter is only required when \code{data} is a dataframe/matrix and it contains categorical variables.
 #'
 #' @return An object of class \code{\link{setarforest}} which contains the following properties.
@@ -37,18 +38,19 @@
 #' @examples
 #' \donttest{
 #' # Training SETAR-Forest with a list of time series
-#' setarforest(chaotic_logistic_series, bagging_freq = 2)
+#' setarforest(chaotic_logistic_series, bagging_freq = 2, num_cores = 1)
 #'
 #' # Training SETAR-Forest with a dataframe containing model inputs where the model inputs may contain
 #' # past time series lags and numerical/categorical covariates
 #' setarforest(data = web_traffic_train[,-1],
 #'             label = web_traffic_train[,1],
 #'             bagging_freq = 2,
+#'             num_cores = 1,
 #'             categorical_covariates = "Project")
 #' }
 #'
 #' @export
-setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2, categorical_covariates = NULL){
+setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2, num_cores = NULL, categorical_covariates = NULL){
 
   if(random_tree_significance & (verbose == 1 | verbose == 2))
     message("'random_tree_significance' = TRUE ... Ignored 'significance' parameter.")
@@ -56,6 +58,11 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
     message("'random_tree_error_threshold' = TRUE ... Ignored 'error_threshold' parameter.")
   if(random_tree_significance_divider & (verbose == 1 | verbose == 2))
     message("'random_tree_significance_divider' = TRUE ... Ignored 'significance_divider' parameter.")
+  
+  if(!is.null(num_cores) && num_cores < 1){
+    warning("The value of 'num_cores' is invalid. 'num_cores' should be a positive integer. Will use available cores during training.")
+    num_cores <- NULL
+  }
 
   if(is(data, "list")){
     if(length(data) < 1)
@@ -68,7 +75,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
     if(!is.null(categorical_covariates)){
       warning("'data' is a list of time series. 'categorical_covariates' is ignored.")
     }
-    fit_setarforest_series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose)
+    fit_setarforest_series(data, lag, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, verbose, num_cores)
   }else if(is(data, "data.frame") |  is(data, "matrix")){
     if(is.null(label))
       stop("'label' is missing. Please provide the true outputs corresponding with each instance in 'data'.")
@@ -76,7 +83,7 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
       warning("'data' is a dataframe/matrix. 'mean_normalisation' is ignored.")
     if(window_normalisation)
       warning("'data' is a dataframe/matrix. 'window_normalisation' is ignored.")
-    fit_setarforest_df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, FALSE, FALSE, "df", verbose, categorical_covariates)
+    fit_setarforest_df(data, label, bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, FALSE, FALSE, "df", verbose, num_cores, categorical_covariates)
   }else{
     stop("'data' should be either a list of time series or a dataframe/matrix containing model inputs.")
   }
@@ -114,13 +121,14 @@ setarforest <- function(data, label = NULL, lag = 10, bagging_fraction = 0.8, ba
 #' @examples
 #' \donttest{
 #' # Obtaining forecasts for a list of time series
-#' forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2)
+#' forest1 <- setarforest(chaotic_logistic_series, bagging_freq = 2, num_cores = 1)
 #' forecast(forest1, chaotic_logistic_series)
 #'
 #' # Obtaining forecasts for a set of test instances
 #' forest2 <- setarforest(data = web_traffic_train[,-1],
 #'                        label = web_traffic_train[,1],
 #'                        bagging_freq = 2,
+#'                        num_cores = 1,
 #'                        categorical_covariates = "Project")
 #' forecast(forest2, web_traffic_test)
 #' }
@@ -161,7 +169,7 @@ forecast.setarforest <- function(object, newdata, h = 5, level = c(80, 95), ...)
 
 
 # Function to fit a SETAR-Forest given a dataframe/matrix of inputs
-fit_setarforest_df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, type = "df", verbose = 2, categorical_covariates = NULL){
+fit_setarforest_df <- function(data, label, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, type = "df", verbose = 2, num_cores = NULL, categorical_covariates = NULL){
 
   data <- as.data.frame(data)
   input_feature_names <- colnames(data)
@@ -202,11 +210,11 @@ fit_setarforest_df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
   num_indexes <- round(nrow(embed_data) * bagging_fraction)
   
-  chk <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
-  if(nzchar(chk) && chk == "TRUE")
-    num_cores <- 1
-  else
+  if(is.null(num_cores))
     num_cores <- parallel::detectCores()
+  else
+    num_cores <- round(num_cores)
+  
   
   # Training multiple SETAR-Trees as required
   if(num_cores > 1){
@@ -312,7 +320,7 @@ fit_setarforest_df <- function(data, label, bagging_fraction = 0.8, bagging_freq
 
 
 # Function to fit a SETAR-Forest given a list of time series
-fit_setarforest_series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2){
+fit_setarforest_series <- function(time_series_list, lag = 10, bagging_fraction = 0.8, bagging_freq = 10, random_tree_significance = TRUE, random_tree_significance_divider = TRUE, random_tree_error_threshold = TRUE, depth = 1000, significance = 0.05, significance_divider = 2, error_threshold = 0.03, stopping_criteria = "both", mean_normalisation = FALSE, window_normalisation = FALSE, verbose = 2, num_cores = NULL){
 
   embedded_series <- NULL
 
@@ -337,7 +345,7 @@ fit_setarforest_series <- function(time_series_list, lag = 10, bagging_fraction 
   colnames(embedded_series)[1] <- "y"
   colnames(embedded_series)[2:(lag + 1)] <- paste("Lag", 1:lag, sep = "")
 
-  fit_setarforest_df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, "list", verbose)
+  fit_setarforest_df(embedded_series[,-1], embedded_series[,1], bagging_fraction, bagging_freq, random_tree_significance, random_tree_significance_divider, random_tree_error_threshold, depth, significance, significance_divider, error_threshold, stopping_criteria, mean_normalisation, window_normalisation, "list", verbose, num_cores)
 }
 
 
